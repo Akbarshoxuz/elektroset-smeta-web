@@ -1,45 +1,1614 @@
 <!DOCTYPE html>
-<html lang="uz">
+<html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Elektroset Smeta</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; }
-    .wrapper {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: var(--tg-theme-bg-color, #f5f5f5);
+      color: var(--tg-theme-text-color, #333);
+      padding: 12px;
+      padding-bottom: 80px;
     }
-    .wrapper iframe {
-      width: 100%;
-      height: calc(100% + 40px);
-      margin-top: -40px;
-      border: none;
+
+    .header {
+      text-align: center;
+      padding: 12px 0;
+      border-bottom: 2px solid var(--tg-theme-button-color, #1a73e8);
+      margin-bottom: 16px;
     }
+    .header h1 { font-size: 18px; color: var(--tg-theme-button-color, #1a73e8); }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+    .tab {
+      flex: 1; padding: 10px 6px; border: none; border-radius: 8px;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      background: var(--tg-theme-secondary-bg-color, #e8e8e8);
+      color: var(--tg-theme-text-color, #555);
+      transition: all 0.2s;
+    }
+    .tab.active {
+      background: var(--tg-theme-button-color, #1a73e8);
+      color: var(--tg-theme-button-text-color, white);
+    }
+
+    /* Forms */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    .form-group { margin-bottom: 12px; }
+    label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+    input, select {
+      width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;
+      font-size: 14px; background: var(--tg-theme-secondary-bg-color, white);
+      color: var(--tg-theme-text-color, #333);
+    }
+    input:focus, select:focus { border-color: var(--tg-theme-button-color, #1a73e8); outline: none; }
+
+    /* Cards */
+    .card {
+      background: var(--tg-theme-secondary-bg-color, white);
+      border-radius: 12px; padding: 14px; margin-bottom: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    /* Material list */
+    .mat-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 12px; background: var(--tg-theme-secondary-bg-color, white);
+      border-radius: 8px; margin-bottom: 6px;
+      border-left: 4px solid #1a73e8;
+    }
+    .mat-item.service { border-left-color: #e65100; }
+    .mat-item.inactive { opacity: 0.5; border-left-color: #999; }
+    .mat-item .name { font-weight: 600; font-size: 13px; flex: 1; }
+    .mat-item .info { font-size: 12px; color: #888; }
+    .mat-item .sum { font-weight: 700; font-size: 14px; color: var(--tg-theme-button-color, #1a73e8); }
+    .mat-item .actions { display: flex; gap: 6px; margin-left: 8px; }
+    .mat-item .actions button {
+      width: 30px; height: 30px; border: none; border-radius: 6px;
+      font-size: 14px; cursor: pointer;
+    }
+    .btn-toggle { background: #e8f5e9; }
+    .btn-delete { background: #ffebee; }
+    .qty-edit {
+      color: #1a73e8; text-decoration: underline; cursor: pointer;
+      padding: 2px 4px; border-radius: 4px;
+    }
+    .qty-edit:active { background: #e3f2fd; }
+
+    /* Summary */
+    .summary { margin-top: 16px; }
+    .summary-row {
+      display: flex; justify-content: space-between; padding: 8px 0;
+      font-size: 14px; border-bottom: 1px solid #eee;
+    }
+    .summary-row.total { font-weight: 700; font-size: 16px; border-bottom: 2px solid; }
+
+    /* Buttons */
+    .btn {
+      padding: 12px 20px; border: none; border-radius: 8px;
+      font-size: 14px; font-weight: 600; cursor: pointer; width: 100%;
+      margin-top: 8px; transition: all 0.2s;
+    }
+    .btn-primary {
+      background: var(--tg-theme-button-color, #1a73e8);
+      color: var(--tg-theme-button-text-color, white);
+    }
+    .btn-add { background: #4CAF50; color: white; }
+    .btn-outline {
+      background: transparent; border: 2px solid var(--tg-theme-button-color, #1a73e8);
+      color: var(--tg-theme-button-color, #1a73e8);
+    }
+
+    .linked-preview { font-size: 12px; color: #666; margin-top: 6px; padding: 8px; background: #f0f0f0; border-radius: 6px; }
+    .linked-preview b { color: #333; }
+
+    .empty-msg { text-align: center; padding: 40px 0; color: #999; font-size: 14px; }
+
+    .loading { text-align: center; padding: 40px; color: #999; }
+
+    .status-msg {
+      padding: 10px; border-radius: 8px; margin-bottom: 12px;
+      font-size: 13px; text-align: center; display: none;
+    }
+    .status-msg.success { display: block; background: #e8f5e9; color: #2e7d32; }
+    .status-msg.error { display: block; background: #ffebee; color: #c62828; }
+
+    /* Smeta list styles */
+    .smeta-card {
+      border-left: 4px solid var(--tg-theme-button-color, #1a73e8);
+    }
+    .smeta-top {
+      display: flex; justify-content: space-between; align-items: flex-start;
+    }
+    .smeta-name { font-weight: 700; font-size: 15px; }
+    .smeta-meta { font-size: 12px; color: #888; margin-top: 2px; }
+    .smeta-summa {
+      font-weight: 700; font-size: 14px;
+      color: var(--tg-theme-button-color, #1a73e8);
+      text-align: right; white-space: nowrap;
+    }
+    .smeta-actions {
+      display: flex; gap: 6px; margin-top: 10px;
+    }
+    .btn-export {
+      flex: 1; padding: 8px; border: none; border-radius: 6px;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn-export:disabled { opacity: 0.5; }
+    .btn-pdf { background: #e3f2fd; color: #1565c0; }
+    .btn-xlsx { background: #e8f5e9; color: #2e7d32; }
+    .btn-del { background: #ffebee; color: #c62828; flex: 0; padding: 8px 12px; }
+
+    /* Admin panel */
+    .adm-section { margin-bottom: 8px; border-radius: 10px; overflow: hidden; background: var(--tg-theme-secondary-bg-color, white); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .adm-summary { padding: 14px 16px; font-weight: 700; font-size: 15px; cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; }
+    .adm-summary::-webkit-details-marker { display: none; }
+    .adm-summary::after { content: '\25B8'; margin-left: auto; transition: transform 0.2s; font-size: 12px; }
+    details[open] > .adm-summary::after { transform: rotate(90deg); }
+    .adm-body { padding: 0 12px 12px; }
+    .adm-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--tg-theme-bg-color, #f5f5f5); border-radius: 8px; margin-bottom: 6px; font-size: 13px; }
+    .adm-item .ai-name { font-weight: 600; }
+    .adm-item .ai-info { color: #888; font-size: 12px; }
+    .adm-item .ai-acts { display: flex; gap: 4px; margin-left: 8px; flex-shrink: 0; }
+    .adm-item .ai-acts button { padding: 4px 10px; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; }
+    .ai-edit { background: #e3f2fd; color: #1565c0; }
+    .ai-del { background: #ffebee; color: #c62828; }
+    .adm-link-item { flex-direction: column; align-items: stretch; }
+    .adm-link-top { display: flex; justify-content: space-between; align-items: center; }
+    .adm-link-children { font-size: 12px; color: #666; margin-top: 6px; }
+    .adm-link-children b { color: #333; }
+    .al-row { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
+    .al-row select { flex: 1; padding: 8px; font-size: 13px; border: 1px solid #ddd; border-radius: 6px; background: var(--tg-theme-secondary-bg-color, white); color: var(--tg-theme-text-color, #333); }
+    .al-row input { width: 60px; padding: 8px; font-size: 13px; border: 1px solid #ddd; border-radius: 6px; }
+    .al-row-rm { width: 28px; height: 28px; border: none; background: #ffebee; color: #c62828; border-radius: 6px; cursor: pointer; font-size: 14px; flex-shrink: 0; }
+    #adminTabBtn { display: none; background: #ff6f00; color: white; }
+    #adminTabBtn.visible { display: block; }
+    #adminTabBtn.active { background: #e65100; color: white; }
+
+    /* Print preview */
+    .print-doc {
+      background: white; border-radius: 8px; padding: 12px; margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.15); font-size: 11px; color: #222;
+      overflow-x: auto;
+    }
+    .print-doc .pd-title {
+      text-align: center; font-weight: 700; font-size: 12px; margin-bottom: 2px;
+      line-height: 1.3;
+    }
+    .print-doc .pd-no { text-align: center; font-size: 11px; margin-bottom: 8px; }
+    .print-doc table {
+      width: 100%; border-collapse: collapse; margin-bottom: 6px; font-size: 10px;
+    }
+    .print-doc th, .print-doc td {
+      border: 1px solid #999; padding: 3px 4px; text-align: center;
+    }
+    .print-doc th { background: #1565C0; color: white; font-size: 9px; font-weight: 600; }
+    .print-doc .tr-total td { background: #BBDEFB; font-weight: 700; }
+    .print-doc td.al { text-align: left; }
+    .print-doc td.ar { text-align: right; }
+    .print-doc .inactive-row td { color: #999; text-decoration: line-through; }
+    .print-doc .ct-jami td { background: #FFF9C4; font-weight: 700; }
+    .print-doc .ct-total td { background: #FFCC02; font-weight: 700; font-size: 12px; }
+    .print-doc .pd-izoh { font-size: 9px; color: #555; margin-top: 8px; line-height: 1.3; }
+    .print-doc .pd-izoh b { color: #333; }
+
+    /* Loading overlay */
+    .overlay {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.45); z-index: 9999;
+      justify-content: center; align-items: center;
+    }
+    .overlay.active { display: flex; }
+    .overlay-box {
+      background: var(--tg-theme-bg-color, white); border-radius: 16px;
+      padding: 28px 36px; text-align: center;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.25); min-width: 180px;
+    }
+    .overlay-spinner {
+      width: 36px; height: 36px; border: 4px solid #ddd;
+      border-top-color: var(--tg-theme-button-color, #1a73e8);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .overlay-text { font-size: 14px; font-weight: 600; color: var(--tg-theme-text-color, #333); }
   </style>
 </head>
 <body>
-  <div class="wrapper">
-    <iframe
-      id="app"
-      allow="clipboard-write"
-      allowfullscreen>
-    </iframe>
+  <!-- Loading overlay -->
+  <div id="loadingOverlay" class="overlay">
+    <div class="overlay-box">
+      <div class="overlay-spinner"></div>
+      <div class="overlay-text" id="loadingText">Yuklanmoqda...</div>
+    </div>
   </div>
-  <script>
-    // URL parametrlarini GAS ga uzatish
-    var params = new URLSearchParams(window.location.search);
-    var gasBase = 'https://script.google.com/macros/s/AKfycbwF5EvkZTQRd_GwZGvJiPdTjgNlqVmktvrqRKufgkErdKwHzemxuWi8woPul8RXsmvohA/exec';
-    var gasUrl = gasBase;
 
-    // tgid parametrini uzatish
-    if (params.get('tgid')) {
-      gasUrl += '?tgid=' + encodeURIComponent(params.get('tgid'));
+  <div class="header">
+    <h1>Elektroset Smeta</h1>
+  </div>
+
+  <div id="statusMsg" class="status-msg"></div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" data-tab="smetas" onclick="switchTab('smetas')">Smetalar</button>
+    <button class="tab" data-tab="info" onclick="switchTab('info')">Yangi</button>
+    <button class="tab" data-tab="materials" onclick="switchTab('materials')">Material</button>
+    <button class="tab" data-tab="summary" onclick="switchTab('summary')">Hisob</button>
+    <button class="tab" data-tab="admin" onclick="switchTab('admin')" id="adminTabBtn">Admin</button>
+  </div>
+
+  <!-- TAB 0: SMETALARIM -->
+  <div id="tab-smetas" class="section active">
+    <div id="smetaList">
+      <div class="loading">Yuklanmoqda...</div>
+    </div>
+  </div>
+
+  <!-- TAB 1: BUYURTMACHI -->
+  <div id="tab-info" class="section">
+    <div class="card">
+      <div class="form-group">
+        <label>Viloyat:</label>
+        <input type="text" id="viloyat" placeholder="Andijon viloyati">
+      </div>
+      <div class="form-group">
+        <label>Tuman:</label>
+        <input type="text" id="tuman" placeholder="Oltinko'l tumani">
+      </div>
+      <div class="form-group">
+        <label>MFY:</label>
+        <input type="text" id="mfy" placeholder="Dalvarzin MFY">
+      </div>
+      <div class="form-group">
+        <label>Ko'cha / Manzil:</label>
+        <input type="text" id="kocha" placeholder="Farovon ko'cha 19-uy">
+      </div>
+      <div class="form-group">
+        <label>Korxona / Buyurtmachi:</label>
+        <input type="text" id="korxona" placeholder="Korxona nomi">
+      </div>
+      <div class="form-group">
+        <label>Smeta raqami:</label>
+        <input type="text" id="smetaNo" placeholder="168466">
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="switchTab('materials')">Davom etish &rarr;</button>
+  </div>
+
+  <!-- TAB 2: MATERIALLAR -->
+  <div id="tab-materials" class="section">
+    <!-- Material qo'shish -->
+    <div class="card">
+      <div class="form-group">
+        <label>Material oilasi:</label>
+        <select id="familySelect" onchange="onFamilyChange()">
+          <option value="">-- Tanlang --</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Material:</label>
+        <select id="materialSelect" onchange="onMaterialChange()">
+          <option value="">-- Avval oilani tanlang --</option>
+        </select>
+      </div>
+      <div id="materialInfo" style="display:none">
+        <div style="font-size:13px;color:#666;margin-bottom:6px;">
+          O'lchov: <b id="matUnit"></b> | Narx: <b id="matPrice"></b> so'm
+        </div>
+        <div class="form-group">
+          <label>Miqdor:</label>
+          <input type="number" id="matQty" value="1" min="0.1" step="0.1">
+        </div>
+        <div id="linkedPreview" class="linked-preview" style="display:none"></div>
+        <button class="btn btn-add" onclick="addMaterial()">Qo'shish</button>
+      </div>
+    </div>
+
+    <!-- Xizmat qo'shish -->
+    <details style="margin-bottom: 10px;">
+      <summary style="cursor:pointer;font-weight:600;font-size:14px;padding:10px;background:var(--tg-theme-secondary-bg-color,white);border-radius:8px;">
+        Xizmat qo'lda qo'shish
+      </summary>
+      <div class="card" style="margin-top:6px;">
+        <div class="form-group">
+          <label>Xizmat:</label>
+          <select id="serviceSelect">
+            <option value="">-- Tanlang --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Miqdor:</label>
+          <input type="number" id="svcQty" value="1" min="0.1" step="0.1">
+        </div>
+        <button class="btn btn-add" onclick="addService()">Xizmat qo'shish</button>
+      </div>
+    </details>
+
+    <!-- Qo'shilgan materiallar ro'yxati -->
+    <h3 style="font-size:15px;margin:12px 0 8px;">Materiallar:</h3>
+    <div id="materialsList"></div>
+
+    <h3 style="font-size:15px;margin:12px 0 8px;">Xizmatlar:</h3>
+    <div id="servicesList"></div>
+
+    <button class="btn btn-primary" onclick="switchTab('summary')" style="margin-top:16px;">Davom etish &rarr;</button>
+  </div>
+
+  <!-- TAB 3: HISOB (pechat ko'rinishi) -->
+  <div id="tab-summary" class="section">
+    <div id="printPreview" class="print-doc"></div>
+
+    <button class="btn btn-primary" onclick="saveSmeta()">Saqlash va yuborish (PDF + Excel)</button>
+    <button class="btn btn-outline" onclick="switchTab('materials')">&larr; Materiallarga qaytish</button>
+  </div>
+
+  <!-- TAB 4: ADMIN (faqat admin uchun) -->
+  <div id="tab-admin" class="section">
+    <!-- Materiallar -->
+    <details class="adm-section" ontoggle="if(this.open) loadAdmMaterials()">
+      <summary class="adm-summary">📦 Materiallar</summary>
+      <div class="adm-body">
+        <div class="card" style="margin-bottom:10px;">
+          <div class="form-group">
+            <label>Nomi:</label>
+            <input type="text" id="am_name" placeholder="Material nomi">
+          </div>
+          <div class="form-group">
+            <label>Oilasi:</label>
+            <input type="text" id="am_family" placeholder="Oilasi" list="amFamilyDL">
+            <datalist id="amFamilyDL"></datalist>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <div class="form-group" style="flex:1">
+              <label>O'lchov:</label>
+              <input type="text" id="am_unit" placeholder="sht, metr">
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>Narx:</label>
+              <input type="number" id="am_price" placeholder="0">
+            </div>
+          </div>
+          <button class="btn btn-add" onclick="amSave()" id="amBtn">Qo'shish</button>
+        </div>
+        <div id="amList"></div>
+      </div>
+    </details>
+
+    <!-- Xizmatlar -->
+    <details class="adm-section" ontoggle="if(this.open) loadAdmServices()">
+      <summary class="adm-summary">🔧 Xizmatlar</summary>
+      <div class="adm-body">
+        <div class="card" style="margin-bottom:10px;">
+          <div class="form-group">
+            <label>Nomi:</label>
+            <input type="text" id="as_name" placeholder="Xizmat nomi">
+          </div>
+          <div style="display:flex;gap:8px;">
+            <div class="form-group" style="flex:1">
+              <label>O'lchov:</label>
+              <input type="text" id="as_unit" placeholder="sht, metr">
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>Narx:</label>
+              <input type="number" id="as_price" placeholder="0">
+            </div>
+          </div>
+          <button class="btn btn-add" onclick="asSave()" id="asBtn">Qo'shish</button>
+        </div>
+        <div id="asList"></div>
+      </div>
+    </details>
+
+    <!-- Bog'lanishlar -->
+    <details class="adm-section" ontoggle="if(this.open) loadAdmLinks()">
+      <summary class="adm-summary">🔗 Bog'lanishlar</summary>
+      <div class="adm-body">
+        <div class="card" style="margin-bottom:10px;">
+          <div class="form-group">
+            <label>Asosiy material:</label>
+            <select id="al_parent"><option value="">-- Tanlang --</option></select>
+          </div>
+          <div class="form-group">
+            <label>Bola materiallar:</label>
+            <div id="al_children"></div>
+            <button type="button" class="btn btn-outline" style="padding:6px;font-size:12px;margin-top:4px;" onclick="alAddChild()">+ Material</button>
+          </div>
+          <div class="form-group">
+            <label>Xizmatlar:</label>
+            <div id="al_svcs"></div>
+            <button type="button" class="btn btn-outline" style="padding:6px;font-size:12px;margin-top:4px;" onclick="alAddSvc()">+ Xizmat</button>
+          </div>
+          <button class="btn btn-add" onclick="alSave()">Saqlash</button>
+        </div>
+        <div id="alList"></div>
+      </div>
+    </details>
+
+    <!-- Foydalanuvchilar -->
+    <details class="adm-section" ontoggle="if(this.open) loadAdmUsers()">
+      <summary class="adm-summary">👥 Foydalanuvchilar</summary>
+      <div class="adm-body">
+        <div class="card" style="margin-bottom:10px;">
+          <div class="form-group">
+            <label>Ism:</label>
+            <input type="text" id="au_name" placeholder="Ism familya">
+          </div>
+          <div style="display:flex;gap:8px;">
+            <div class="form-group" style="flex:1">
+              <label>Rol:</label>
+              <select id="au_role"><option value="smetchik">Smetchik</option><option value="admin">Admin</option></select>
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>Telegram ID:</label>
+              <input type="text" id="au_tgid" placeholder="123456789">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Email:</label>
+            <input type="email" id="au_email" placeholder="email@example.com">
+          </div>
+          <button class="btn btn-add" onclick="auSave()" id="auBtn">Qo'shish</button>
+        </div>
+        <div id="auList"></div>
+      </div>
+    </details>
+
+    <!-- Tizim -->
+    <details class="adm-section">
+      <summary class="adm-summary">🔧 Tizim</summary>
+      <div class="adm-body">
+        <div class="card">
+          <button class="btn btn-primary" onclick="resetWebhook()" style="width:100%;margin-bottom:8px;">🔄 Webhook qayta o'rnatish</button>
+          <p style="font-size:12px;color:#888;margin:0;">Bot javob bermasa, shu tugmani bosing.</p>
+        </div>
+      </div>
+    </details>
+
+    <!-- Sozlamalar -->
+    <details class="adm-section" ontoggle="if(this.open) loadAdmSettings()">
+      <summary class="adm-summary">⚙️ Sozlamalar</summary>
+      <div class="adm-body">
+        <div class="card">
+          <div class="form-group">
+            <label>Loyiha xizmati %:</label>
+            <input type="number" id="az_loyiha" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>QQS %:</label>
+            <input type="number" id="az_qqs" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>Korxona harajatlari %:</label>
+            <input type="number" id="az_korxona" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>Izoh matni:</label>
+            <textarea id="az_izoh" rows="3" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;resize:vertical;"></textarea>
+          </div>
+          <button class="btn btn-primary" onclick="azSave()">Saqlash</button>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <script>
+    // ==================== DATA ====================
+    var appData = {
+      families: {},
+      services: [],
+      settings: { loyihaPercent: 5, qqsPercent: 12, korxonaPercent: 18.71 },
+      materials: [],    // qo'shilgan materiallar
+      svcItems: [],     // qo'shilgan xizmatlar
+      telegramId: null
+    };
+
+    // ==================== GAS API ====================
+    var GAS_URL = 'https://script.google.com/macros/s/AKfycbwF5EvkZTQRd_GwZGvJiPdTjgNlqVmktvrqRKufgkErdKwHzemxuWi8woPul8RXsmvohA/exec';
+
+    function gasGet(action, params) {
+      var url = GAS_URL + '?action=' + encodeURIComponent(action);
+      if (params) {
+        for (var key in params) {
+          if (params.hasOwnProperty(key) && params[key] !== undefined && params[key] !== null) {
+            url += '&' + encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
+          }
+        }
+      }
+      return fetch(url).then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      });
     }
 
-    document.getElementById('app').src = gasUrl;
+    function gasPost(action, data) {
+      var payload = Object.assign({ action: action }, data);
+      return fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        redirect: 'follow'
+      }).then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      });
+    }
+
+    // ==================== INIT ====================
+    window.onload = function() {
+      // Telegram Web App
+      if (window.Telegram && Telegram.WebApp) {
+        Telegram.WebApp.ready();
+        Telegram.WebApp.expand();
+        var user = Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user;
+        if (user) {
+          appData.telegramId = user.id;
+        }
+      }
+
+      // URL parametr orqali telegramId olish
+      var urlParams = new URLSearchParams(window.location.search);
+      var urlTgId = urlParams.get('tgid');
+      if (urlTgId && !appData.telegramId) {
+        appData.telegramId = urlTgId;
+      }
+
+      showLoading('Ma\'lumotlar yuklanmoqda...');
+      loadData();
+      loadSmetaList();
+    };
+
+    function loadData() {
+      gasGet('getFullData', { tgid: appData.telegramId || 0 })
+        .then(function(data) {
+          hideLoading();
+          if (data.error) { showStatus(data.error, 'error'); return; }
+          if (data.families) appData.families = data.families;
+          if (data.services) appData.services = data.services;
+          if (data.settings) appData.settings = data.settings;
+          populateFamilies();
+          populateServices();
+          if (data.user && data.user.role === 'admin') {
+            document.getElementById('adminTabBtn').classList.add('visible');
+          }
+        })
+        .catch(function(err) {
+          hideLoading();
+          showStatus('Xatolik: ' + err.message, 'error');
+        });
+    }
+
+    // ==================== SMETA LIST ====================
+    function loadSmetaList() {
+      var el = document.getElementById('smetaList');
+      el.innerHTML = '<div class="loading">Yuklanmoqda...</div>';
+      gasGet('getSmetaList', { tgid: appData.telegramId || 0 })
+        .then(function(list) { renderSmetaList(list); })
+        .catch(function(err) {
+          document.getElementById('smetaList').innerHTML =
+            '<div class="empty-msg">Xatolik: ' + err.message + '</div>';
+        });
+    }
+
+    function renderSmetaList(list) {
+      var el = document.getElementById('smetaList');
+
+      // Debug: agar _debug ma'lumot qaytsa ko'rsatish
+      if (list && list._debug) {
+        var debugInfo = list._debug;
+        var actualList = list.list || [];
+        el.innerHTML = '<div class="empty-msg">Hech qanday smeta topilmadi.<br><br>' +
+          '<div style="font-size:10px;color:#999;text-align:left;padding:8px;background:#f5f5f5;border-radius:6px;margin:8px 0;word-break:break-all;">DEBUG: ' + escHtml(String(debugInfo)) + '</div>' +
+          '<button class="btn btn-primary" style="width:auto;display:inline-block;padding:10px 24px;" ' +
+          'onclick="switchTab(\'info\')">Yangi smeta yaratish</button></div>';
+        return;
+      }
+
+      if (!list || list.error || list.length === 0) {
+        el.innerHTML = '<div class="empty-msg">Hech qanday smeta topilmadi.<br><br>' +
+          '<button class="btn btn-primary" style="width:auto;display:inline-block;padding:10px 24px;" ' +
+          'onclick="switchTab(\'info\')">Yangi smeta yaratish</button></div>';
+        return;
+      }
+
+      // Eng yangi birinchi (teskari tartib)
+      list.sort(function(a, b) {
+        if (String(a.id) > String(b.id)) return -1;
+        if (String(a.id) < String(b.id)) return 1;
+        return 0;
+      });
+
+      var html = '';
+      for (var i = 0; i < list.length; i++) {
+        var s = list[i];
+        var korxona = s.korxona || 'Noma\'lum';
+        var safeSheet = s.sheetName.replace(/'/g, "\\'");
+        var safeKorxona = korxona.replace(/'/g, "\\'");
+
+        html += '<div class="card smeta-card">';
+        html += '<div class="smeta-top">';
+        html += '<div>';
+        html += '<div class="smeta-name">' + escHtml(korxona) + '</div>';
+        html += '<div class="smeta-meta">#' + s.id + ' | ' + s.date + '</div>';
+        if (s.location) html += '<div class="smeta-meta">' + escHtml(s.location) + '</div>';
+        html += '</div>';
+        html += '<div class="smeta-summa">' + fmtNum(s.summa || 0) + '<br><span style="font-size:11px;color:#888;font-weight:400;">so\'m</span></div>';
+        html += '</div>';
+        html += '<div class="smeta-actions">';
+        html += '<button class="btn-export btn-pdf" onclick="exportSmeta(\'' + safeSheet + '\',\'pdf\')">PDF</button>';
+        html += '<button class="btn-export btn-xlsx" onclick="exportSmeta(\'' + safeSheet + '\',\'xlsx\')">Excel</button>';
+        html += '<button class="btn-export btn-del" onclick="deleteSmeta(\'' + safeSheet + '\',\'' + safeKorxona + '\')">O\'chirish</button>';
+        html += '</div>';
+        html += '</div>';
+      }
+
+      el.innerHTML = html;
+    }
+
+    function exportSmeta(sheetName, format) {
+      showLoading(format.toUpperCase() + ' tayyorlanmoqda...');
+      gasPost('exportAndSend', { sheetName: sheetName, format: format, telegramId: appData.telegramId })
+        .then(function(result) {
+          hideLoading();
+          if (result.error) { showStatus(result.error, 'error'); return; }
+          showStatus(result.fileName + ' Telegramga yuborildi!', 'success');
+        })
+        .catch(function(err) {
+          hideLoading();
+          showStatus('Xatolik: ' + err.message, 'error');
+        });
+    }
+
+    function deleteSmeta(sheetName, korxona) {
+      if (!confirm('"' + korxona + '" smetasini o\'chirishni xohlaysizmi?')) return;
+      showLoading('O\'chirilmoqda...');
+      gasPost('deleteSmetaFromApp', { telegramId: appData.telegramId, sheetName: sheetName })
+        .then(function(result) {
+          hideLoading();
+          if (result.error) { showStatus(result.error, 'error'); return; }
+          showStatus('Smeta o\'chirildi!', 'success');
+          loadSmetaList();
+        })
+        .catch(function(err) {
+          hideLoading();
+          showStatus('Xatolik: ' + err.message, 'error');
+        });
+    }
+
+    // ==================== POPULATE ====================
+    function populateFamilies() {
+      var sel = document.getElementById('familySelect');
+      sel.innerHTML = '<option value="">-- Oila tanlang --</option>';
+      var keys = Object.keys(appData.families).sort();
+      for (var i = 0; i < keys.length; i++) {
+        var opt = document.createElement('option');
+        opt.value = keys[i];
+        opt.textContent = keys[i];
+        sel.appendChild(opt);
+      }
+    }
+
+    function populateServices() {
+      var sel = document.getElementById('serviceSelect');
+      sel.innerHTML = '<option value="">-- Xizmat tanlang --</option>';
+      for (var i = 0; i < appData.services.length; i++) {
+        var s = appData.services[i];
+        var opt = document.createElement('option');
+        opt.value = s.name;
+        opt.textContent = s.name + ' (' + s.unit + ', ' + fmtNum(s.price) + ')';
+        sel.appendChild(opt);
+      }
+    }
+
+    function onFamilyChange() {
+      var family = document.getElementById('familySelect').value;
+      var sel = document.getElementById('materialSelect');
+      sel.innerHTML = '<option value="">-- Material tanlang --</option>';
+      document.getElementById('materialInfo').style.display = 'none';
+
+      if (!family || !appData.families[family]) return;
+
+      var mats = appData.families[family];
+      for (var i = 0; i < mats.length; i++) {
+        var opt = document.createElement('option');
+        opt.value = mats[i].name;
+        opt.textContent = mats[i].name + ' (' + fmtNum(mats[i].price) + ' so\'m)';
+        opt.dataset.unit = mats[i].unit;
+        opt.dataset.price = mats[i].price;
+        sel.appendChild(opt);
+      }
+    }
+
+    function onMaterialChange() {
+      var sel = document.getElementById('materialSelect');
+      var opt = sel.options[sel.selectedIndex];
+
+      if (!sel.value) {
+        document.getElementById('materialInfo').style.display = 'none';
+        return;
+      }
+
+      document.getElementById('matUnit').textContent = opt.dataset.unit;
+      document.getElementById('matPrice').textContent = fmtNum(opt.dataset.price);
+      document.getElementById('materialInfo').style.display = 'block';
+
+      // Linked items preview
+      gasGet('getLinkedItems', { name: sel.value })
+        .then(function(linked) {
+          var prev = document.getElementById('linkedPreview');
+          if ((!linked.materials || linked.materials.length === 0) &&
+              (!linked.services || linked.services.length === 0)) {
+            prev.style.display = 'none';
+            return;
+          }
+          var html = '<b>Avtomatik qo\'shiladi:</b><br>';
+          for (var i = 0; i < linked.materials.length; i++) {
+            html += '+ ' + linked.materials[i].name + ' (' + linked.materials[i].qty + ')<br>';
+          }
+          for (var j = 0; j < linked.services.length; j++) {
+            html += '+ ' + linked.services[j].name + ' (' + linked.services[j].qtyMultiplier + ')<br>';
+          }
+          prev.innerHTML = html;
+          prev.style.display = 'block';
+        });
+    }
+
+    // ==================== ADD MATERIAL ====================
+    // Bir xil material/xizmat bo'lsa soni qo'shiladi, yo'q bo'lsa yangi qator
+    function addOrMergeMaterial(name, unit, qty, price, active) {
+      for (var i = 0; i < appData.materials.length; i++) {
+        if (appData.materials[i].name === name) {
+          appData.materials[i].qty += qty;
+          return;
+        }
+      }
+      appData.materials.push({ name: name, unit: unit, qty: qty, price: price, active: active });
+    }
+
+    function addOrMergeService(name, unit, qty, price) {
+      for (var i = 0; i < appData.svcItems.length; i++) {
+        if (appData.svcItems[i].name === name) {
+          appData.svcItems[i].qty += qty;
+          return;
+        }
+      }
+      appData.svcItems.push({ name: name, unit: unit, qty: qty, price: price });
+    }
+
+    function addMaterial() {
+      var matName = document.getElementById('materialSelect').value;
+      var qty = parseFloat(document.getElementById('matQty').value);
+
+      if (!matName) { alert('Material tanlang!'); return; }
+      if (!qty || qty <= 0) { alert('Miqdorni kiriting!'); return; }
+
+      // Materialni topish
+      var mat = findMaterial(matName);
+      if (!mat) { alert('Material topilmadi!'); return; }
+
+      // Asosiy material (bir xil bo'lsa soni qo'shiladi)
+      addOrMergeMaterial(mat.name, mat.unit, qty, mat.price, true);
+
+      // Linked items
+      showLoading('Material qo\'shilmoqda...');
+      gasGet('getLinkedItems', { name: matName })
+        .then(function(linked) {
+          hideLoading();
+          for (var i = 0; i < linked.materials.length; i++) {
+            var childName = linked.materials[i].name;
+            var childQty = linked.materials[i].qty;
+            if (typeof childQty === 'string' && childQty.toLowerCase() === 'metr') {
+              childQty = qty;
+            } else {
+              childQty = Number(childQty) * qty;
+            }
+            var childMat = findMaterial(childName);
+            if (childMat) {
+              addOrMergeMaterial(childMat.name, childMat.unit, childQty, childMat.price, true);
+            }
+          }
+          for (var j = 0; j < linked.services.length; j++) {
+            var svcName = linked.services[j].name;
+            var svcQty = linked.services[j].qtyMultiplier;
+            if (typeof svcQty === 'string' && svcQty.toLowerCase() === 'metr') {
+              svcQty = qty;
+            } else {
+              svcQty = Number(svcQty) * qty;
+            }
+            var svc = findService(svcName);
+            if (svc) {
+              addOrMergeService(svc.name, svc.unit, svcQty, svc.price);
+            }
+          }
+          renderAll();
+          showStatus(mat.name + ' qo\'shildi!', 'success');
+          document.getElementById('materialSelect').value = '';
+          document.getElementById('matQty').value = '1';
+          document.getElementById('materialInfo').style.display = 'none';
+          document.getElementById('linkedPreview').style.display = 'none';
+        })
+        .catch(function(err) {
+          hideLoading();
+          showStatus('Xatolik: ' + err.message, 'error');
+        });
+    }
+
+    function addService() {
+      var svcName = document.getElementById('serviceSelect').value;
+      var qty = parseFloat(document.getElementById('svcQty').value);
+
+      if (!svcName) { alert('Xizmat tanlang!'); return; }
+      if (!qty || qty <= 0) { alert('Miqdorni kiriting!'); return; }
+
+      var svc = findService(svcName);
+      if (!svc) { alert('Xizmat topilmadi!'); return; }
+
+      addOrMergeService(svc.name, svc.unit, qty, svc.price);
+
+      renderAll();
+      showStatus(svc.name + ' qo\'shildi!', 'success');
+      document.getElementById('serviceSelect').value = '';
+      document.getElementById('svcQty').value = '1';
+    }
+
+    // ==================== FIND HELPERS ====================
+    function findMaterial(name) {
+      var keys = Object.keys(appData.families);
+      for (var k = 0; k < keys.length; k++) {
+        var fam = appData.families[keys[k]];
+        for (var i = 0; i < fam.length; i++) {
+          if (fam[i].name === name) return fam[i];
+        }
+      }
+      return null;
+    }
+
+    function findService(name) {
+      for (var i = 0; i < appData.services.length; i++) {
+        if (appData.services[i].name === name) return appData.services[i];
+      }
+      return null;
+    }
+
+    // ==================== RENDER ====================
+    function renderAll() {
+      renderMaterials();
+      renderServices();
+      renderSummary();
+    }
+
+    function renderMaterials() {
+      var el = document.getElementById('materialsList');
+      if (appData.materials.length === 0) {
+        el.innerHTML = '<div class="empty-msg">Material qo\'shilmagan</div>';
+        return;
+      }
+
+      var html = '';
+      for (var i = 0; i < appData.materials.length; i++) {
+        var m = appData.materials[i];
+        var cls = m.active ? '' : ' inactive';
+        html += '<div class="mat-item' + cls + '">';
+        html += '<div>';
+        html += '<div class="name">' + (i + 1) + '. ' + escHtml(m.name) + '</div>';
+        html += '<div class="info"><span class="qty-edit" onclick="editMatQty(' + i + ')">' + m.qty + ' ' + m.unit + '</span> x ' + fmtNum(m.price) + '</div>';
+        html += '</div>';
+        html += '<div class="sum">' + fmtNum(m.qty * m.price) + '</div>';
+        html += '<div class="actions">';
+        html += '<button class="btn-toggle" onclick="toggleMat(' + i + ')">' + (m.active ? '\u2713' : '\u2717') + '</button>';
+        html += '<button class="btn-delete" onclick="deleteMat(' + i + ')">\u2715</button>';
+        html += '</div></div>';
+      }
+      el.innerHTML = html;
+    }
+
+    function renderServices() {
+      var el = document.getElementById('servicesList');
+      if (appData.svcItems.length === 0) {
+        el.innerHTML = '<div class="empty-msg">Xizmat qo\'shilmagan</div>';
+        return;
+      }
+
+      var html = '';
+      for (var i = 0; i < appData.svcItems.length; i++) {
+        var s = appData.svcItems[i];
+        html += '<div class="mat-item service">';
+        html += '<div>';
+        html += '<div class="name">' + (i + 1) + '. ' + escHtml(s.name) + '</div>';
+        html += '<div class="info"><span class="qty-edit" onclick="editSvcQty(' + i + ')">' + s.qty + ' ' + s.unit + '</span> x ' + fmtNum(s.price) + '</div>';
+        html += '</div>';
+        html += '<div class="sum">' + fmtNum(s.qty * s.price) + '</div>';
+        html += '<div class="actions">';
+        html += '<button class="btn-delete" onclick="deleteSvc(' + i + ')">\u2715</button>';
+        html += '</div></div>';
+      }
+      el.innerHTML = html;
+    }
+
+    function renderSummary() {
+      var jamiMat = 0, jamiMatFinal = 0, jamiSvc = 0;
+
+      for (var i = 0; i < appData.materials.length; i++) {
+        var m = appData.materials[i];
+        var s = m.qty * m.price;
+        jamiMat += s;
+        if (m.active) jamiMatFinal += s;
+      }
+
+      for (var j = 0; j < appData.svcItems.length; j++) {
+        jamiSvc += appData.svcItems[j].qty * appData.svcItems[j].price;
+      }
+
+      var kp = appData.settings.korxonaPercent || 18.71;
+      var lp = appData.settings.loyihaPercent || 5;
+      var qp = appData.settings.qqsPercent || 12;
+
+      // Korxona va loyiha BARCHA materiallar asosida (faol/nofaol farqi yo'q)
+      var baseForPercent = jamiMat + jamiSvc;
+      var korxona = baseForPercent * (kp / 100);
+      var afterKorxona = baseForPercent + korxona;
+      var loyiha = afterKorxona * (lp / 100);
+      // Jami: faqat faol materiallar + xizmatlar + korxona + loyiha
+      var jami = jamiMatFinal + jamiSvc + korxona + loyiha;
+      var qqs = jami * (qp / 100);
+      var total = jami + qqs;
+
+      // Pechat ko'rinishi
+      var viloyat = document.getElementById('viloyat').value || '';
+      var tuman = document.getElementById('tuman').value || '';
+      var mfy = document.getElementById('mfy').value || '';
+      var kocha = document.getElementById('kocha').value || '';
+      var korxonaName = document.getElementById('korxona').value || '';
+      var smetaNo = document.getElementById('smetaNo').value || '';
+
+      var h = '';
+
+      // Sarlavha
+      var addr = [viloyat, tuman, mfy, kocha].filter(function(x) { return x; }).join(', ');
+      if (addr && korxonaName) {
+        h += '<div class="pd-title">' + escHtml(addr) + ' joylashgan "' + escHtml(korxonaName) + '" uchun sarf harajat smetasi</div>';
+      } else {
+        h += '<div class="pd-title">Sarf harajat smetasi</div>';
+      }
+      h += '<div class="pd-no">' + (smetaNo ? '№' + escHtml(smetaNo) : '') + '</div>';
+
+      // === MATERIALLAR JADVALI (7 ustun, ✓ yo'q) ===
+      h += '<table class="smeta-table"><thead><tr>';
+      h += '<th style="width:25px">№</th><th>Material/Xizmat turi</th><th style="width:40px">Ed.</th>';
+      h += '<th style="width:35px">Soni</th><th style="width:65px">Narx</th>';
+      h += '<th style="width:65px">Summa</th><th style="width:70px">Yakuniy summa</th>';
+      h += '</tr></thead><tbody>';
+
+      if (appData.materials.length > 0) {
+        for (var i = 0; i < appData.materials.length; i++) {
+          var m = appData.materials[i];
+          var ms = m.qty * m.price;
+          var cls = m.active ? '' : ' class="inactive-row"';
+          h += '<tr' + cls + '>';
+          h += '<td>' + (i + 1) + '</td>';
+          h += '<td class="al">' + escHtml(m.name) + '</td>';
+          h += '<td>' + escHtml(m.unit) + '</td>';
+          h += '<td>' + m.qty + '</td>';
+          h += '<td class="ar">' + fmtNum(m.price) + '</td>';
+          h += '<td class="ar">' + fmtNum(ms) + '</td>';
+          h += '<td class="ar">' + (m.active ? fmtNum(ms) : '0') + '</td>';
+          h += '</tr>';
+        }
+
+        h += '<tr class="tr-total">';
+        h += '<td colspan="5" class="al"><b>Jami material:</b></td>';
+        h += '<td class="ar"><b>' + fmtNum(jamiMat) + '</b></td>';
+        h += '<td class="ar"><b>' + fmtNum(jamiMatFinal) + '</b></td>';
+        h += '</tr>';
+      }
+
+      // === XIZMATLAR (shu jadvalda davom etadi) ===
+      if (appData.svcItems.length > 0) {
+        for (var j = 0; j < appData.svcItems.length; j++) {
+          var sv = appData.svcItems[j];
+          var ss = sv.qty * sv.price;
+          h += '<tr>';
+          h += '<td>' + (j + 1) + '</td>';
+          h += '<td class="al">' + escHtml(sv.name) + '</td>';
+          h += '<td>' + escHtml(sv.unit) + '</td>';
+          h += '<td>' + sv.qty + '</td>';
+          h += '<td class="ar">' + fmtNum(sv.price) + '</td>';
+          h += '<td class="ar">' + fmtNum(ss) + '</td>';
+          h += '<td class="ar">' + fmtNum(ss) + '</td>';
+          h += '</tr>';
+        }
+
+        h += '<tr class="tr-total">';
+        h += '<td colspan="5" class="al"><b>Jami xizmat:</b></td>';
+        h += '<td class="ar"><b>' + fmtNum(jamiSvc) + '</b></td>';
+        h += '<td class="ar"><b>' + fmtNum(jamiSvc) + '</b></td>';
+        h += '</tr>';
+      }
+
+      // === HISOB-KITOB (shu jadvalda davom etadi) ===
+      h += '<tr><td colspan="6" class="al">Korxona harajatlari ' + kp + '%</td><td class="ar">' + fmtNum(korxona) + '</td></tr>';
+      h += '<tr><td colspan="6" class="al">Loyiha xizmati ' + lp + '%</td><td class="ar">' + fmtNum(loyiha) + '</td></tr>';
+      h += '<tr class="ct-jami"><td colspan="6" class="al"><b>Jami:</b></td><td class="ar"><b>' + fmtNum(jami) + '</b></td></tr>';
+      h += '<tr><td colspan="6" class="al">QQS ' + qp + '%</td><td class="ar">' + fmtNum(qqs) + '</td></tr>';
+      h += '<tr class="ct-total"><td colspan="6" class="al"><b>To\'lov uchun jami:</b></td><td class="ar"><b>' + fmtNum(total) + ' so\'m</b></td></tr>';
+      h += '</tbody></table>';
+
+      // Izoh
+      var izoh = appData.settings.izohText || '';
+      if (izoh) {
+        h += '<div class="pd-izoh"><b>Izoh:</b> ' + escHtml(izoh) + '</div>';
+      }
+
+      document.getElementById('printPreview').innerHTML = h;
+    }
+
+    // ==================== ACTIONS ====================
+    function toggleMat(idx) {
+      appData.materials[idx].active = !appData.materials[idx].active;
+      renderAll();
+    }
+
+    function deleteMat(idx) {
+      appData.materials.splice(idx, 1);
+      renderAll();
+    }
+
+    function deleteSvc(idx) {
+      appData.svcItems.splice(idx, 1);
+      renderAll();
+    }
+
+    function editMatQty(idx) {
+      var m = appData.materials[idx];
+      var newQty = prompt('Miqdorni o\'zgartiring (' + m.name + '):', m.qty);
+      if (newQty === null) return;
+      newQty = parseFloat(newQty);
+      if (!newQty || newQty <= 0) { alert('Noto\'g\'ri miqdor!'); return; }
+      m.qty = newQty;
+      renderAll();
+    }
+
+    function editSvcQty(idx) {
+      var s = appData.svcItems[idx];
+      var newQty = prompt('Miqdorni o\'zgartiring (' + s.name + '):', s.qty);
+      if (newQty === null) return;
+      newQty = parseFloat(newQty);
+      if (!newQty || newQty <= 0) { alert('Noto\'g\'ri miqdor!'); return; }
+      s.qty = newQty;
+      renderAll();
+    }
+
+    // ==================== SAVE ====================
+    function saveSmeta() {
+      var korxona = document.getElementById('korxona').value;
+      if (!korxona) {
+        alert('Korxona nomini kiriting!');
+        switchTab('info');
+        return;
+      }
+
+      if (appData.materials.length === 0) {
+        alert('Kamida bitta material qo\'shing!');
+        switchTab('materials');
+        return;
+      }
+
+      var smetaData = {
+        telegramId: appData.telegramId || 0,
+        viloyat: document.getElementById('viloyat').value,
+        tuman: document.getElementById('tuman').value,
+        mfy: document.getElementById('mfy').value,
+        kocha: document.getElementById('kocha').value,
+        korxona: korxona,
+        smetaNo: document.getElementById('smetaNo').value,
+        materials: appData.materials,
+        services: appData.svcItems
+      };
+
+      showLoading('Saqlanmoqda...');
+
+      gasPost('saveSmeta', { data: smetaData })
+        .then(function(result) {
+          if (result.error) { hideLoading(); showStatus(result.error, 'error'); return; }
+
+          showLoading('PDF + Excel tayyorlanmoqda...');
+          var exportDone = { pdf: false, excel: false, pdfOk: false, excelOk: false };
+
+          function checkExportDone() {
+            if (!exportDone.pdf || !exportDone.excel) return;
+            hideLoading();
+            var msg = 'Smeta saqlandi! ID: ' + result.smetaId;
+            if (exportDone.pdfOk) msg += '\nPDF yuborildi!';
+            if (exportDone.excelOk) msg += '\nExcel yuborildi!';
+            showStatus(msg, 'success');
+            appData.materials = []; appData.svcItems = [];
+            document.getElementById('viloyat').value = '';
+            document.getElementById('tuman').value = '';
+            document.getElementById('mfy').value = '';
+            document.getElementById('kocha').value = '';
+            document.getElementById('korxona').value = '';
+            document.getElementById('smetaNo').value = '';
+            renderAll();
+            loadSmetaList();
+            switchTab('smetas');
+          }
+
+          gasPost('exportAndSend', { sheetName: result.sheetName, format: 'pdf', telegramId: appData.telegramId })
+            .then(function(res) { exportDone.pdf = true; exportDone.pdfOk = res && res.success; checkExportDone(); })
+            .catch(function() { exportDone.pdf = true; checkExportDone(); });
+
+          gasPost('exportAndSend', { sheetName: result.sheetName, format: 'xlsx', telegramId: appData.telegramId })
+            .then(function(res) { exportDone.excel = true; exportDone.excelOk = res && res.success; checkExportDone(); })
+            .catch(function() { exportDone.excel = true; checkExportDone(); });
+        })
+        .catch(function(err) {
+          hideLoading();
+          showStatus('Xatolik: ' + err.message, 'error');
+        });
+    }
+
+    // ==================== TABS ====================
+    function switchTab(tab) {
+      var tabBtns = document.querySelectorAll('.tab');
+      var sections = document.querySelectorAll('.section');
+
+      tabBtns.forEach(function(t) { t.classList.remove('active'); });
+      sections.forEach(function(s) { s.classList.remove('active'); });
+
+      var btn = document.querySelector('.tab[data-tab="' + tab + '"]');
+      if (btn) btn.classList.add('active');
+
+      var sec = document.getElementById('tab-' + tab);
+      if (sec) sec.classList.add('active');
+
+      if (tab === 'summary') renderSummary();
+      if (tab === 'smetas') loadSmetaList();
+    }
+
+    // ==================== HELPERS ====================
+    function fmtNum(n) {
+      return Math.round(Number(n) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    }
+
+    function escHtml(str) {
+      var div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function showLoading(msg) {
+      document.getElementById('loadingText').textContent = msg || 'Yuklanmoqda...';
+      document.getElementById('loadingOverlay').classList.add('active');
+    }
+
+    function hideLoading() {
+      document.getElementById('loadingOverlay').classList.remove('active');
+    }
+
+    function showStatus(msg, type) {
+      var el = document.getElementById('statusMsg');
+      el.textContent = msg;
+      el.className = 'status-msg ' + type;
+      setTimeout(function() { el.className = 'status-msg'; }, 4000);
+    }
+
+    // ==================== ADMIN PANEL ====================
+    var admData = { materials: [], services: [], links: [], users: [], editRow: null, editType: null };
+
+    function admCall(action, params, cb, loadMsg) {
+      if (loadMsg) showLoading(loadMsg);
+      gasPost('admin', { telegramId: appData.telegramId, subAction: action, params: params || {} })
+        .then(function(r) {
+          if (loadMsg) hideLoading();
+          if (r && r.error) {
+            showStatus(r.error, 'error');
+            if (cb) cb(null);
+            return;
+          }
+          if (cb) cb(r);
+        })
+        .catch(function(e) {
+          if (loadMsg) hideLoading();
+          showStatus('Xatolik: ' + e.message, 'error');
+          if (cb) cb(null);
+        });
+    }
+
+    // --- Materiallar ---
+    function loadAdmMaterials() {
+      admCall('getMaterials', {}, function(list) {
+        admData.materials = list || [];
+        renderAdmMaterials();
+      }, 'Materiallar yuklanmoqda...');
+      admCall('getMaterialFamilyList', {}, function(fams) {
+        var dl = document.getElementById('amFamilyDL');
+        dl.innerHTML = '';
+        for (var i = 0; i < fams.length; i++) dl.innerHTML += '<option value="' + escHtml(fams[i]) + '">';
+      });
+    }
+
+    function renderAdmMaterials() {
+      var el = document.getElementById('amList');
+      var list = admData.materials;
+      if (!list.length) { el.innerHTML = '<div class="empty-msg">Material topilmadi</div>'; return; }
+      var h = '';
+      for (var i = 0; i < list.length; i++) {
+        var m = list[i];
+        h += '<div class="adm-item"><div><div class="ai-name">' + escHtml(m.name) + '</div>';
+        h += '<div class="ai-info">' + escHtml(m.family || '') + ' | ' + (m.unit || '') + ' | ' + fmtNum(m.price) + ' so\'m</div></div>';
+        h += '<div class="ai-acts"><button class="ai-edit" onclick="amEdit(' + i + ')">✎</button>';
+        h += '<button class="ai-del" onclick="amDel(' + i + ')">✕</button></div></div>';
+      }
+      el.innerHTML = h;
+    }
+
+    function amSave() {
+      var n = document.getElementById('am_name').value.trim();
+      var f = document.getElementById('am_family').value.trim();
+      var u = document.getElementById('am_unit').value.trim();
+      var p = parseFloat(document.getElementById('am_price').value) || 0;
+      if (!n) { alert('Nomini kiriting!'); return; }
+      if (admData.editRow && admData.editType === 'mat') {
+        admCall('updateMaterial', { row: admData.editRow, name: n, family: f, unit: u, price: p }, function() {
+          showStatus('Yangilandi!', 'success'); amReset(); loadAdmMaterials(); loadData();
+        }, 'Saqlanmoqda...');
+      } else {
+        admCall('addMaterial', { name: n, family: f, unit: u, price: p }, function() {
+          showStatus('Qo\'shildi!', 'success'); amReset(); loadAdmMaterials(); loadData();
+        }, 'Qo\'shilmoqda...');
+      }
+    }
+
+    function amEdit(i) {
+      var m = admData.materials[i];
+      admData.editRow = m.row; admData.editType = 'mat';
+      document.getElementById('am_name').value = m.name;
+      document.getElementById('am_family').value = m.family || '';
+      document.getElementById('am_unit').value = m.unit || '';
+      document.getElementById('am_price').value = m.price || 0;
+      document.getElementById('amBtn').textContent = 'Yangilash';
+      document.getElementById('am_name').focus();
+    }
+
+    function amDel(i) {
+      if (!confirm('O\'chirilsinmi?')) return;
+      admCall('deleteMaterial', { row: admData.materials[i].row }, function() {
+        showStatus('O\'chirildi!', 'success'); loadAdmMaterials(); loadData();
+      }, 'O\'chirilmoqda...');
+    }
+
+    function amReset() {
+      admData.editRow = null; admData.editType = null;
+      document.getElementById('am_name').value = '';
+      document.getElementById('am_family').value = '';
+      document.getElementById('am_unit').value = '';
+      document.getElementById('am_price').value = '';
+      document.getElementById('amBtn').textContent = 'Qo\'shish';
+    }
+
+    // --- Xizmatlar ---
+    function loadAdmServices() {
+      admCall('getServices', {}, function(list) {
+        admData.services = list || [];
+        renderAdmServices();
+      }, 'Xizmatlar yuklanmoqda...');
+    }
+
+    function renderAdmServices() {
+      var el = document.getElementById('asList');
+      var list = admData.services;
+      if (!list.length) { el.innerHTML = '<div class="empty-msg">Xizmat topilmadi</div>'; return; }
+      var h = '';
+      for (var i = 0; i < list.length; i++) {
+        var s = list[i];
+        h += '<div class="adm-item"><div><div class="ai-name">' + escHtml(s.name) + '</div>';
+        h += '<div class="ai-info">' + (s.unit || '') + ' | ' + fmtNum(s.price) + ' so\'m</div></div>';
+        h += '<div class="ai-acts"><button class="ai-edit" onclick="asEdit(' + i + ')">✎</button>';
+        h += '<button class="ai-del" onclick="asDel(' + i + ')">✕</button></div></div>';
+      }
+      el.innerHTML = h;
+    }
+
+    function asSave() {
+      var n = document.getElementById('as_name').value.trim();
+      var u = document.getElementById('as_unit').value.trim();
+      var p = parseFloat(document.getElementById('as_price').value) || 0;
+      if (!n) { alert('Nomini kiriting!'); return; }
+      if (admData.editRow && admData.editType === 'svc') {
+        admCall('updateService', { row: admData.editRow, name: n, unit: u, price: p }, function() {
+          showStatus('Yangilandi!', 'success'); asReset(); loadAdmServices(); loadData();
+        }, 'Saqlanmoqda...');
+      } else {
+        admCall('addService', { name: n, unit: u, price: p }, function() {
+          showStatus('Qo\'shildi!', 'success'); asReset(); loadAdmServices(); loadData();
+        }, 'Qo\'shilmoqda...');
+      }
+    }
+
+    function asEdit(i) {
+      var s = admData.services[i];
+      admData.editRow = s.row; admData.editType = 'svc';
+      document.getElementById('as_name').value = s.name;
+      document.getElementById('as_unit').value = s.unit || '';
+      document.getElementById('as_price').value = s.price || 0;
+      document.getElementById('asBtn').textContent = 'Yangilash';
+      document.getElementById('as_name').focus();
+    }
+
+    function asDel(i) {
+      if (!confirm('O\'chirilsinmi?')) return;
+      admCall('deleteService', { row: admData.services[i].row }, function() {
+        showStatus('O\'chirildi!', 'success'); loadAdmServices(); loadData();
+      }, 'O\'chirilmoqda...');
+    }
+
+    function asReset() {
+      admData.editRow = null; admData.editType = null;
+      document.getElementById('as_name').value = '';
+      document.getElementById('as_unit').value = '';
+      document.getElementById('as_price').value = '';
+      document.getElementById('asBtn').textContent = 'Qo\'shish';
+    }
+
+    // --- Bog'lanishlar ---
+    function loadAdmLinks() {
+      admCall('getLinks', {}, function(list) {
+        admData.links = list || [];
+        renderAdmLinks();
+        populateAlParent();
+      }, 'Bog\'lanishlar yuklanmoqda...');
+    }
+
+    function populateAlParent() {
+      var sel = document.getElementById('al_parent');
+      sel.innerHTML = '<option value="">-- Material tanlang --</option>';
+      var keys = Object.keys(appData.families).sort();
+      for (var k = 0; k < keys.length; k++) {
+        var grp = document.createElement('optgroup');
+        grp.label = keys[k];
+        var fam = appData.families[keys[k]];
+        for (var i = 0; i < fam.length; i++) {
+          var opt = document.createElement('option');
+          opt.value = fam[i].name;
+          opt.textContent = fam[i].name;
+          grp.appendChild(opt);
+        }
+        sel.appendChild(grp);
+      }
+    }
+
+    function renderAdmLinks() {
+      var el = document.getElementById('alList');
+      var list = admData.links;
+      if (!list.length) { el.innerHTML = '<div class="empty-msg">Bog\'lanish topilmadi</div>'; return; }
+      var h = '';
+      for (var i = 0; i < list.length; i++) {
+        var l = list[i];
+        h += '<div class="adm-item adm-link-item">';
+        h += '<div class="adm-link-top"><div class="ai-name">' + escHtml(l.parent) + '</div>';
+        h += '<div class="ai-acts"><button class="ai-edit" onclick="alEdit(' + i + ')">✎</button>';
+        h += '<button class="ai-del" onclick="alDel(' + i + ')">✕</button></div></div>';
+        if (l.children.length || l.services.length) {
+          h += '<div class="adm-link-children">';
+          for (var c = 0; c < l.children.length; c++) {
+            h += '📦 ' + escHtml(l.children[c].name) + ' (' + l.children[c].qty + ')<br>';
+          }
+          for (var s = 0; s < l.services.length; s++) {
+            h += '🔧 ' + escHtml(l.services[s].name) + ' (' + l.services[s].qty + ')<br>';
+          }
+          h += '</div>';
+        }
+        h += '</div>';
+      }
+      el.innerHTML = h;
+    }
+
+    function alAddChild(name, qty) {
+      var c = document.getElementById('al_children');
+      var div = document.createElement('div');
+      div.className = 'al-row';
+      var sel = document.createElement('select');
+      sel.innerHTML = '<option value="">-- Material --</option>';
+      var keys = Object.keys(appData.families).sort();
+      for (var k = 0; k < keys.length; k++) {
+        var fam = appData.families[keys[k]];
+        for (var i = 0; i < fam.length; i++) {
+          var opt = document.createElement('option');
+          opt.value = fam[i].name;
+          opt.textContent = fam[i].name;
+          if (name && fam[i].name === name) opt.selected = true;
+          sel.appendChild(opt);
+        }
+      }
+      var inp = document.createElement('input');
+      inp.type = 'number'; inp.value = qty || 1; inp.min = '0.1'; inp.step = '0.1';
+      var btn = document.createElement('button');
+      btn.className = 'al-row-rm'; btn.textContent = '\u2715';
+      btn.onclick = function() { div.remove(); };
+      div.appendChild(sel); div.appendChild(inp); div.appendChild(btn);
+      c.appendChild(div);
+    }
+
+    function alAddSvc(name, qty) {
+      var c = document.getElementById('al_svcs');
+      var div = document.createElement('div');
+      div.className = 'al-row';
+      var sel = document.createElement('select');
+      sel.innerHTML = '<option value="">-- Xizmat --</option>';
+      for (var i = 0; i < appData.services.length; i++) {
+        var s = appData.services[i];
+        var opt = document.createElement('option');
+        opt.value = s.name;
+        opt.textContent = s.name;
+        if (name && s.name === name) opt.selected = true;
+        sel.appendChild(opt);
+      }
+      var inp = document.createElement('input');
+      inp.type = 'number'; inp.value = qty || 1; inp.min = '0.1'; inp.step = '0.1';
+      var btn = document.createElement('button');
+      btn.className = 'al-row-rm'; btn.textContent = '\u2715';
+      btn.onclick = function() { div.remove(); };
+      div.appendChild(sel); div.appendChild(inp); div.appendChild(btn);
+      c.appendChild(div);
+    }
+
+    function alEdit(i) {
+      var l = admData.links[i];
+      document.getElementById('al_parent').value = l.parent;
+      document.getElementById('al_children').innerHTML = '';
+      document.getElementById('al_svcs').innerHTML = '';
+      for (var c = 0; c < l.children.length; c++) alAddChild(l.children[c].name, l.children[c].qty);
+      for (var s = 0; s < l.services.length; s++) alAddSvc(l.services[s].name, l.services[s].qty);
+      document.getElementById('al_parent').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function alSave() {
+      var parent = document.getElementById('al_parent').value;
+      if (!parent) { alert('Material tanlang!'); return; }
+      var children = [];
+      var childRows = document.querySelectorAll('#al_children .al-row');
+      for (var i = 0; i < childRows.length; i++) {
+        var s = childRows[i].querySelector('select');
+        var inp = childRows[i].querySelector('input');
+        if (s.value) children.push({ name: s.value, qty: parseFloat(inp.value) || 1 });
+      }
+      var services = [];
+      var svcRows = document.querySelectorAll('#al_svcs .al-row');
+      for (var j = 0; j < svcRows.length; j++) {
+        var s2 = svcRows[j].querySelector('select');
+        var inp2 = svcRows[j].querySelector('input');
+        if (s2.value) services.push({ name: s2.value, qty: parseFloat(inp2.value) || 1 });
+      }
+      admCall('saveLink', { parentName: parent, children: children, services: services }, function() {
+        showStatus('Saqlandi!', 'success'); alResetForm(); loadAdmLinks();
+      }, 'Saqlanmoqda...');
+    }
+
+    function alDel(i) {
+      if (!confirm('O\'chirilsinmi?')) return;
+      admCall('deleteLink', { row: admData.links[i].row }, function() {
+        showStatus('O\'chirildi!', 'success'); loadAdmLinks();
+      }, 'O\'chirilmoqda...');
+    }
+
+    function alResetForm() {
+      document.getElementById('al_parent').value = '';
+      document.getElementById('al_children').innerHTML = '';
+      document.getElementById('al_svcs').innerHTML = '';
+    }
+
+    // --- Foydalanuvchilar ---
+    function loadAdmUsers() {
+      showLoading('Foydalanuvchilar yuklanmoqda...');
+      gasGet('getUsersDirect', { tgid: appData.telegramId || 0 })
+        .then(function(list) {
+          hideLoading();
+          admData.users = (list && Array.isArray(list)) ? list : [];
+          renderAdmUsers();
+        })
+        .catch(function(e) {
+          hideLoading();
+          document.getElementById('auList').innerHTML = '<div class="empty-msg">Xatolik: ' + e.message + '</div>';
+        });
+    }
+
+    function renderAdmUsers() {
+      var el = document.getElementById('auList');
+      var list = admData.users;
+      if (!list.length) { el.innerHTML = '<div class="empty-msg">Foydalanuvchi topilmadi</div>'; return; }
+      var h = '';
+      for (var i = 0; i < list.length; i++) {
+        var u = list[i];
+        var badge = u.role === 'admin' ? ' \uD83D\uDD11' : '';
+        h += '<div class="adm-item"><div><div class="ai-name">' + escHtml(u.name) + badge + '</div>';
+        h += '<div class="ai-info">' + (u.role || '') + ' | TG:' + (u.telegramId || '-') + ' | ' + (u.email || '-') + '</div></div>';
+        h += '<div class="ai-acts"><button class="ai-edit" onclick="auEdit(' + i + ')">✎</button>';
+        h += '<button class="ai-del" onclick="auDel(' + i + ')">✕</button></div></div>';
+      }
+      el.innerHTML = h;
+    }
+
+    function auSave() {
+      var n = document.getElementById('au_name').value.trim();
+      var r = document.getElementById('au_role').value;
+      var e = document.getElementById('au_email').value.trim();
+      var t = document.getElementById('au_tgid').value.trim();
+      if (!n) { alert('Ism kiriting!'); return; }
+      if (admData.editRow && admData.editType === 'user') {
+        admCall('updateUser', { row: admData.editRow, name: n, role: r, email: e, telegramId: t }, function() {
+          showStatus('Yangilandi!', 'success'); auReset(); loadAdmUsers();
+        }, 'Saqlanmoqda...');
+      } else {
+        admCall('addUser', { name: n, role: r, email: e, telegramId: t }, function() {
+          showStatus('Qo\'shildi!', 'success'); auReset(); loadAdmUsers();
+        }, 'Qo\'shilmoqda...');
+      }
+    }
+
+    function auEdit(i) {
+      var u = admData.users[i];
+      admData.editRow = u.row; admData.editType = 'user';
+      document.getElementById('au_name').value = u.name;
+      document.getElementById('au_role').value = u.role || 'smetchik';
+      document.getElementById('au_email').value = u.email || '';
+      document.getElementById('au_tgid').value = u.telegramId || '';
+      document.getElementById('auBtn').textContent = 'Yangilash';
+      document.getElementById('au_name').focus();
+    }
+
+    function auDel(i) {
+      if (!confirm('O\'chirilsinmi?')) return;
+      admCall('deleteUser', { row: admData.users[i].row }, function() {
+        showStatus('O\'chirildi!', 'success'); loadAdmUsers();
+      }, 'O\'chirilmoqda...');
+    }
+
+    function auReset() {
+      admData.editRow = null; admData.editType = null;
+      document.getElementById('au_name').value = '';
+      document.getElementById('au_role').value = 'smetchik';
+      document.getElementById('au_email').value = '';
+      document.getElementById('au_tgid').value = '';
+      document.getElementById('auBtn').textContent = 'Qo\'shish';
+    }
+
+    // --- Sozlamalar ---
+    function loadAdmSettings() {
+      admCall('getSettings', {}, function(s) {
+        document.getElementById('az_loyiha').value = s.loyihaPercent || 5;
+        document.getElementById('az_qqs').value = s.qqsPercent || 12;
+        document.getElementById('az_korxona').value = s.korxonaPercent || 18.71;
+        document.getElementById('az_izoh').value = s.izohText || '';
+      }, 'Sozlamalar yuklanmoqda...');
+    }
+
+    function azSave() {
+      var l = parseFloat(document.getElementById('az_loyiha').value) || 0;
+      var q = parseFloat(document.getElementById('az_qqs').value) || 0;
+      var k = parseFloat(document.getElementById('az_korxona').value) || 0;
+      var iz = document.getElementById('az_izoh').value;
+      admCall('saveSettings', { loyiha: l, qqs: q, korxona: k, izoh: iz }, function() {
+        showStatus('Sozlamalar saqlandi!', 'success');
+        loadData();
+      }, 'Saqlanmoqda...');
+    }
+
+    function resetWebhook() {
+      admCall('resetWebhook', {}, function(r) {
+        if (r && r.success) {
+          showStatus('Webhook qayta o\'rnatildi!', 'success');
+        } else {
+          showStatus('Xatolik: ' + JSON.stringify(r), 'error');
+        }
+      }, 'Webhook o\'rnatilmoqda...');
+    }
   </script>
 </body>
 </html>
