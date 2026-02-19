@@ -217,38 +217,43 @@
       animation: slideInDown 0.3s ease;
     }
 
-    /* Smeta list styles */
-    .smeta-card {
-      border-left: 4px solid var(--tg-theme-button-color, #1565C0);
-      transition: all 0.25s ease;
+    /* Smeta search */
+    .smeta-search { position: relative; margin-bottom: 10px; }
+    .smeta-search input {
+      width: 100%; padding: 9px 12px 9px 34px; border: 1.5px solid #ddd;
+      border-radius: 10px; font-size: 13px;
+      background: var(--tg-theme-secondary-bg-color, white);
+      color: var(--tg-theme-text-color, #333);
     }
-    .smeta-card:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    .smeta-search input:focus { border-color: #1565C0; outline: none; box-shadow: 0 0 0 3px rgba(21,101,192,0.12); }
+    .smeta-search::before {
+      content: '\1F50D'; position: absolute; left: 10px; top: 50%;
+      transform: translateY(-50%); font-size: 14px; opacity: 0.4;
     }
-    .smeta-top {
-      display: flex; justify-content: space-between; align-items: flex-start;
+    .smeta-count { font-size: 11px; color: #999; text-align: right; margin-bottom: 6px; }
+
+    /* Smeta list — compact */
+    .smeta-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px; background: var(--tg-theme-secondary-bg-color, white);
+      border-radius: 10px; margin-bottom: 5px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+      transition: transform 0.15s;
     }
-    .smeta-name { font-weight: 700; font-size: 15px; }
-    .smeta-meta { font-size: 12px; color: #888; margin-top: 2px; }
-    .smeta-summa {
-      font-weight: 700; font-size: 14px;
-      color: var(--tg-theme-button-color, #1565C0);
-      text-align: right; white-space: nowrap;
+    .smeta-row:active { transform: scale(0.98); }
+    .smeta-num { font-size: 11px; color: #999; font-weight: 700; min-width: 18px; text-align: center; }
+    .smeta-info { flex: 1; min-width: 0; overflow: hidden; }
+    .smeta-name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .smeta-meta { font-size: 10px; color: #999; }
+    .smeta-acts { display: flex; gap: 4px; flex-shrink: 0; }
+    .smeta-acts button {
+      padding: 6px 8px; border: none; border-radius: 6px;
+      font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s;
     }
-    .smeta-actions {
-      display: flex; gap: 6px; margin-top: 10px;
-    }
-    .btn-export {
-      flex: 1; padding: 9px; border: none; border-radius: 8px;
-      font-size: 12px; font-weight: 600; cursor: pointer;
-      transition: all 0.25s ease;
-    }
-    .btn-export:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
-    .btn-export:disabled { opacity: 0.5; }
+    .smeta-acts button:active { transform: scale(0.9); }
     .btn-pdf { background: #e3f2fd; color: #1565c0; }
     .btn-xlsx { background: #e8f5e9; color: #2e7d32; }
-    .btn-del { background: #ffebee; color: #c62828; flex: 0; padding: 9px 14px; }
+    .btn-del { background: #ffebee; color: #c62828; }
 
     /* Admin panel */
     .adm-section {
@@ -426,9 +431,11 @@
 
   <!-- TAB 0: SMETALARIM -->
   <div id="tab-smetas" class="section active">
-    <div id="smetaList">
-      <div class="loading">Yuklanmoqda...</div>
+    <div class="smeta-search" id="smetaSearchWrap" style="display:none;">
+      <input type="text" id="smetaSearch" placeholder="Qidirish..." oninput="filterSmetas()">
     </div>
+    <div id="smetaCount" class="smeta-count" style="display:none;"></div>
+    <div id="smetaList"></div>
   </div>
 
   <!-- TAB 1: BUYURTMACHI -->
@@ -745,16 +752,17 @@
         appData.telegramId = urlTgId;
       }
 
-      showLoading('Ma\'lumotlar yuklanmoqda...');
-      loadData();
-      loadSmetaList();
+      showLoading('Smetalar yuklanmoqda...');
+      var pending = 2;
+      function checkDone() { pending--; if (pending <= 0) hideLoading(); }
+      loadData(checkDone);
+      loadSmetaList(checkDone);
     };
 
-    function loadData() {
+    function loadData(onDone) {
       gasGet('getFullData', { tgid: appData.telegramId || 0 })
         .then(function(data) {
-          hideLoading();
-          if (data.error) { showStatus(data.error, 'error'); return; }
+          if (data.error) { showStatus(data.error, 'error'); if (onDone) onDone(); return; }
           if (data.families) appData.families = data.families;
           if (data.services) appData.services = data.services;
           if (data.settings) appData.settings = data.settings;
@@ -763,52 +771,60 @@
           if (data.user && data.user.role === 'admin') {
             document.getElementById('adminTabBtn').classList.add('visible');
           }
+          if (onDone) onDone();
         })
         .catch(function(err) {
-          hideLoading();
           showStatus('Xatolik: ' + err.message, 'error');
+          if (onDone) onDone();
         });
     }
 
     // ==================== SMETA LIST ====================
-    function loadSmetaList() {
-      var el = document.getElementById('smetaList');
-      el.innerHTML = '<div class="loading">Yuklanmoqda...</div>';
+    function loadSmetaList(onDone) {
       gasGet('getSmetaList', { tgid: appData.telegramId || 0 })
-        .then(function(list) { renderSmetaList(list); })
+        .then(function(list) {
+          renderSmetaList(list);
+          if (onDone) onDone();
+        })
         .catch(function(err) {
           document.getElementById('smetaList').innerHTML =
             '<div class="empty-msg">Xatolik: ' + err.message + '</div>';
+          if (onDone) onDone();
         });
     }
 
+    var allSmetas = [];
+
     function renderSmetaList(list) {
       var el = document.getElementById('smetaList');
+      var searchWrap = document.getElementById('smetaSearchWrap');
+      var countEl = document.getElementById('smetaCount');
 
-      // Debug: agar _debug ma'lumot qaytsa ko'rsatish
-      if (list && list._debug) {
-        var debugInfo = list._debug;
-        var actualList = list.list || [];
-        el.innerHTML = '<div class="empty-msg">Hech qanday smeta topilmadi.<br><br>' +
-          '<div style="font-size:10px;color:#999;text-align:left;padding:8px;background:#f5f5f5;border-radius:6px;margin:8px 0;word-break:break-all;">DEBUG: ' + escHtml(String(debugInfo)) + '</div>' +
-          '<button class="btn btn-primary" style="width:auto;display:inline-block;padding:10px 24px;" ' +
-          'onclick="switchTab(\'info\')">Yangi smeta yaratish</button></div>';
-        return;
-      }
-
-      if (!list || list.error || list.length === 0) {
+      if (!list || list.error || (Array.isArray(list) && list.length === 0)) {
+        searchWrap.style.display = 'none';
+        countEl.style.display = 'none';
         el.innerHTML = '<div class="empty-msg">Hech qanday smeta topilmadi.<br><br>' +
           '<button class="btn btn-primary" style="width:auto;display:inline-block;padding:10px 24px;" ' +
           'onclick="switchTab(\'info\')">Yangi smeta yaratish</button></div>';
         return;
       }
 
-      // Eng yangi birinchi (teskari tartib)
-      list.sort(function(a, b) {
-        if (String(a.id) > String(b.id)) return -1;
-        if (String(a.id) < String(b.id)) return 1;
-        return 0;
-      });
+      list.sort(function(a, b) { return String(b.id).localeCompare(String(a.id)); });
+      allSmetas = list;
+      searchWrap.style.display = 'block';
+      renderFilteredSmetas(list);
+    }
+
+    function renderFilteredSmetas(list) {
+      var el = document.getElementById('smetaList');
+      var countEl = document.getElementById('smetaCount');
+      countEl.textContent = 'Jami: ' + list.length + ' ta smeta';
+      countEl.style.display = 'block';
+
+      if (list.length === 0) {
+        el.innerHTML = '<div class="empty-msg" style="padding:20px 0;">Topilmadi</div>';
+        return;
+      }
 
       var html = '';
       for (var i = 0; i < list.length; i++) {
@@ -816,25 +832,34 @@
         var korxona = s.korxona || 'Noma\'lum';
         var safeSheet = s.sheetName.replace(/'/g, "\\'");
         var safeKorxona = korxona.replace(/'/g, "\\'");
+        var loc = s.location ? ' · ' + escHtml(s.location) : '';
 
-        html += '<div class="card smeta-card">';
-        html += '<div class="smeta-top">';
-        html += '<div>';
+        html += '<div class="smeta-row">';
+        html += '<span class="smeta-num">' + (i + 1) + '</span>';
+        html += '<div class="smeta-info">';
         html += '<div class="smeta-name">' + escHtml(korxona) + '</div>';
-        html += '<div class="smeta-meta">#' + s.id + ' | ' + s.date + '</div>';
-        if (s.location) html += '<div class="smeta-meta">' + escHtml(s.location) + '</div>';
+        html += '<div class="smeta-meta">#' + s.id + ' · ' + s.date + loc + ' · ' + fmtNum(s.summa || 0) + ' so\'m</div>';
         html += '</div>';
-        html += '<div class="smeta-summa">' + fmtNum(s.summa || 0) + '<br><span style="font-size:11px;color:#888;font-weight:400;">so\'m</span></div>';
-        html += '</div>';
-        html += '<div class="smeta-actions">';
-        html += '<button class="btn-export btn-pdf" onclick="exportSmeta(\'' + safeSheet + '\',\'pdf\')">PDF</button>';
-        html += '<button class="btn-export btn-xlsx" onclick="exportSmeta(\'' + safeSheet + '\',\'xlsx\')">Excel</button>';
-        html += '<button class="btn-export btn-del" onclick="deleteSmeta(\'' + safeSheet + '\',\'' + safeKorxona + '\')">O\'chirish</button>';
+        html += '<div class="smeta-acts">';
+        html += '<button class="btn-pdf" onclick="exportSmeta(\'' + safeSheet + '\',\'pdf\')">PDF</button>';
+        html += '<button class="btn-xlsx" onclick="exportSmeta(\'' + safeSheet + '\',\'xlsx\')">XLS</button>';
+        html += '<button class="btn-del" onclick="deleteSmeta(\'' + safeSheet + '\',\'' + safeKorxona + '\')">✕</button>';
         html += '</div>';
         html += '</div>';
       }
-
       el.innerHTML = html;
+    }
+
+    function filterSmetas() {
+      var q = document.getElementById('smetaSearch').value.toLowerCase().trim();
+      if (!q) { renderFilteredSmetas(allSmetas); return; }
+      var filtered = allSmetas.filter(function(s) {
+        return (s.korxona || '').toLowerCase().indexOf(q) !== -1 ||
+               (s.location || '').toLowerCase().indexOf(q) !== -1 ||
+               String(s.id || '').toLowerCase().indexOf(q) !== -1 ||
+               (s.date || '').toLowerCase().indexOf(q) !== -1;
+      });
+      renderFilteredSmetas(filtered);
     }
 
     function exportSmeta(sheetName, format) {
