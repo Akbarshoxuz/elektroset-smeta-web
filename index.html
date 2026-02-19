@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Elektroset Smeta</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    .wrapper {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    .wrapper iframe {
+      width: 100%;
+      height: calc(100% + 40px);
+      margin-top: -40px;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <iframe
+      id="app"
+      allow="clipboard-write"
+      allowfullscreen>
+    </iframe>
+  </div>
+  <script>
+    // URL parametrlarini GAS ga uzatish
+    var params = new URLSearchParams(window.location.search);
+    var gasBase = 'https://script.google.com/macros/s/AKfycbwF5EvkZTQRd_GwZGvJiPdTjgNlqVmktvrqRKufgkErdKwHzemxuWi8woPul8RXsmvohA/exec';
+    var gasUrl = gasBase;
+
+    // tgid parametrini uzatish
+    if (params.get('tgid')) {
+      gasUrl += '?tgid=' + encodeURIComponent(params.get('tgid'));
+    }
+
+    document.getElementById('app').src = gasUrl;
+  </script>
+</body>
+</html>
