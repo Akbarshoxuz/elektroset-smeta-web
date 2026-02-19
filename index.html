@@ -52,30 +52,61 @@
     /* Content wrapper */
     .content-wrap { padding: 0 12px; }
 
-    /* Tabs */
-    .tabs {
-      display: flex; gap: 5px; margin-bottom: 16px;
-      padding: 0 12px;
-    }
-    .tab {
-      flex: 1; padding: 10px 6px; border: none; border-radius: 22px;
-      font-size: 12px; font-weight: 600; cursor: pointer;
-      background: var(--tg-theme-secondary-bg-color, #e8edf2);
-      color: var(--tg-theme-text-color, #555);
-      transition: all 0.25s ease;
-    }
-    .tab:hover {
-      background: #d4dbe5;
-    }
-    .tab.active {
-      background: linear-gradient(135deg, #1565C0, #1976D2);
-      color: var(--tg-theme-button-text-color, white);
-      box-shadow: 0 3px 10px rgba(21,101,192,0.35);
-    }
+    /* Screens */
+    .screen { display: none; }
+    .screen.active { display: block; }
 
-    /* Forms */
-    .section { display: none; }
-    .section.active { display: block; }
+    .back-btn {
+      background: none; border: none; color: #1565C0; font-size: 14px;
+      font-weight: 600; cursor: pointer; padding: 8px 0; margin-bottom: 8px;
+    }
+    .back-btn:active { opacity: 0.6; }
+
+    /* Steps bar */
+    .steps-bar {
+      display: flex; gap: 4px; margin-bottom: 16px;
+      background: var(--tg-theme-secondary-bg-color, #f0f2f5);
+      border-radius: 10px; padding: 4px;
+    }
+    .steps-bar .step {
+      flex: 1; text-align: center; padding: 8px 4px; border-radius: 8px;
+      font-size: 12px; font-weight: 600; color: #999;
+      transition: all 0.25s;
+    }
+    .steps-bar .step.active {
+      background: linear-gradient(135deg, #1565C0, #1976D2);
+      color: white;
+      box-shadow: 0 2px 8px rgba(21,101,192,0.3);
+    }
+    .steps-bar .step.done { color: #2e7d32; }
+
+    .step-content { display: none; }
+    .step-content.active { display: block; }
+
+    /* Home screen buttons */
+    .home-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .home-btn {
+      flex: 1; padding: 20px 16px; border: none; border-radius: 14px;
+      font-size: 16px; font-weight: 700; cursor: pointer;
+      transition: all 0.25s; text-align: center;
+    }
+    .home-btn:active { transform: scale(0.96); }
+    .home-btn-new {
+      background: linear-gradient(135deg, #43A047, #66BB6A);
+      color: white; box-shadow: 0 4px 12px rgba(67,160,71,0.3);
+    }
+    .home-btn-list {
+      background: linear-gradient(135deg, #1565C0, #1976D2);
+      color: white; box-shadow: 0 4px 12px rgba(21,101,192,0.3);
+    }
+    .home-admin-btn {
+      display: none; margin-top: 12px; padding: 10px 16px; border: none; border-radius: 10px;
+      font-size: 13px; font-weight: 600; cursor: pointer; width: 100%;
+      background: linear-gradient(135deg, #E65100, #FF6F00); color: white;
+      box-shadow: 0 2px 8px rgba(230,81,0,0.3);
+      transition: all 0.25s;
+    }
+    .home-admin-btn:active { transform: scale(0.98); }
 
     .form-group { margin-bottom: 12px; }
     label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 5px; color: var(--tg-theme-text-color, #444); }
@@ -318,9 +349,9 @@
       transition: all 0.2s;
     }
     .al-row-rm:hover { background: #ffcdd2; }
-    #adminTabBtn { display: none; background: linear-gradient(135deg, #E65100, #FF6F00); color: white; }
-    #adminTabBtn.visible { display: block; }
-    #adminTabBtn.active { background: linear-gradient(135deg, #BF360C, #E65100); color: white; }
+    /* Nav step buttons row */
+    .step-nav { display: flex; gap: 8px; margin-top: 16px; }
+    .step-nav .btn { flex: 1; }
 
     /* Print preview */
     .print-doc {
@@ -418,19 +449,20 @@
 
   <div id="statusMsg" class="status-msg"></div>
 
-  <!-- TABS -->
-  <div class="tabs">
-    <button class="tab active" data-tab="smetas" onclick="switchTab('smetas')">Smetalar</button>
-    <button class="tab" data-tab="info" onclick="switchTab('info')">Yangi</button>
-    <button class="tab" data-tab="materials" onclick="switchTab('materials')">Material</button>
-    <button class="tab" data-tab="summary" onclick="switchTab('summary')">Hisob</button>
-    <button class="tab" data-tab="admin" onclick="switchTab('admin')" id="adminTabBtn">Admin</button>
-  </div>
-
   <div class="content-wrap">
 
-  <!-- TAB 0: SMETALARIM -->
-  <div id="tab-smetas" class="section active">
+  <!-- ========== SCREEN: HOME ========== -->
+  <div id="screen-home" class="screen active">
+    <div class="home-actions">
+      <button class="home-btn home-btn-new" onclick="goScreen('new')">+ Yangi</button>
+      <button class="home-btn home-btn-list" onclick="goScreen('smetas')">Smetalar</button>
+    </div>
+    <button class="home-admin-btn" id="adminBtn" onclick="goScreen('admin')">Admin panel</button>
+  </div>
+
+  <!-- ========== SCREEN: SMETALAR ========== -->
+  <div id="screen-smetas" class="screen">
+    <button class="back-btn" onclick="goScreen('home')">&larr; Ortga</button>
     <div class="smeta-search" id="smetaSearchWrap" style="display:none;">
       <input type="text" id="smetaSearch" placeholder="Qidirish..." oninput="filterSmetas()">
     </div>
@@ -438,106 +470,123 @@
     <div id="smetaList"></div>
   </div>
 
-  <!-- TAB 1: BUYURTMACHI -->
-  <div id="tab-info" class="section">
-    <div class="card">
-      <div class="form-group">
-        <label>Viloyat:</label>
-        <input type="text" id="viloyat" placeholder="Andijon viloyati">
-      </div>
-      <div class="form-group">
-        <label>Tuman:</label>
-        <input type="text" id="tuman" placeholder="Oltinko'l tumani">
-      </div>
-      <div class="form-group">
-        <label>MFY:</label>
-        <input type="text" id="mfy" placeholder="Dalvarzin MFY">
-      </div>
-      <div class="form-group">
-        <label>Ko'cha / Manzil:</label>
-        <input type="text" id="kocha" placeholder="Farovon ko'cha 19-uy">
-      </div>
-      <div class="form-group">
-        <label>Korxona / Buyurtmachi:</label>
-        <input type="text" id="korxona" placeholder="Korxona nomi">
-      </div>
-      <div class="form-group">
-        <label>Smeta raqami:</label>
-        <input type="text" id="smetaNo" placeholder="168466">
-      </div>
-    </div>
-    <button class="btn btn-primary" onclick="switchTab('materials')">Davom etish &rarr;</button>
-  </div>
-
-  <!-- TAB 2: MATERIALLAR -->
-  <div id="tab-materials" class="section">
-    <!-- Material qo'shish -->
-    <div class="card">
-      <div class="form-group">
-        <label>Material oilasi:</label>
-        <select id="familySelect" onchange="onFamilyChange()">
-          <option value="">-- Tanlang --</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Material:</label>
-        <select id="materialSelect" onchange="onMaterialChange()">
-          <option value="">-- Avval oilani tanlang --</option>
-        </select>
-      </div>
-      <div id="materialInfo" style="display:none">
-        <div style="font-size:13px;color:#666;margin-bottom:6px;">
-          O'lchov: <b id="matUnit"></b> | Narx: <b id="matPrice"></b> so'm
-        </div>
-        <div class="form-group">
-          <label>Miqdor:</label>
-          <input type="number" id="matQty" value="1" min="0.1" step="0.1">
-        </div>
-        <div id="linkedPreview" class="linked-preview" style="display:none"></div>
-        <button class="btn btn-add" onclick="addMaterial()">Qo'shish</button>
-      </div>
+  <!-- ========== SCREEN: YANGI SMETA (3-step wizard) ========== -->
+  <div id="screen-new" class="screen">
+    <button class="back-btn" onclick="goStepBack()">&larr; Ortga</button>
+    <div class="steps-bar">
+      <span class="step active" data-step="1">&#9312; Ma'lumotlar</span>
+      <span class="step" data-step="2">&#9313; Material</span>
+      <span class="step" data-step="3">&#9314; Hisob</span>
     </div>
 
-    <!-- Xizmat qo'shish -->
-    <details style="margin-bottom: 10px;">
-      <summary style="cursor:pointer;font-weight:600;font-size:14px;padding:12px 14px;background:var(--tg-theme-secondary-bg-color,white);border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,0.06);">
-        Xizmat qo'lda qo'shish
-      </summary>
-      <div class="card" style="margin-top:6px;">
+    <!-- Step 1: Buyer info -->
+    <div id="step-1" class="step-content active">
+      <div class="card">
         <div class="form-group">
-          <label>Xizmat:</label>
-          <select id="serviceSelect">
+          <label>Viloyat:</label>
+          <input type="text" id="viloyat" placeholder="Andijon viloyati">
+        </div>
+        <div class="form-group">
+          <label>Tuman:</label>
+          <input type="text" id="tuman" placeholder="Oltinko'l tumani">
+        </div>
+        <div class="form-group">
+          <label>MFY:</label>
+          <input type="text" id="mfy" placeholder="Dalvarzin MFY">
+        </div>
+        <div class="form-group">
+          <label>Ko'cha / Manzil:</label>
+          <input type="text" id="kocha" placeholder="Farovon ko'cha 19-uy">
+        </div>
+        <div class="form-group">
+          <label>Korxona / Buyurtmachi:</label>
+          <input type="text" id="korxona" placeholder="Korxona nomi">
+        </div>
+        <div class="form-group">
+          <label>Smeta raqami:</label>
+          <input type="text" id="smetaNo" placeholder="168466">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="goStep(2)">Keyingi &rarr;</button>
+    </div>
+
+    <!-- Step 2: Materials -->
+    <div id="step-2" class="step-content">
+      <!-- Material qo'shish -->
+      <div class="card">
+        <div class="form-group">
+          <label>Material oilasi:</label>
+          <select id="familySelect" onchange="onFamilyChange()">
             <option value="">-- Tanlang --</option>
           </select>
         </div>
         <div class="form-group">
-          <label>Miqdor:</label>
-          <input type="number" id="svcQty" value="1" min="0.1" step="0.1">
+          <label>Material:</label>
+          <select id="materialSelect" onchange="onMaterialChange()">
+            <option value="">-- Avval oilani tanlang --</option>
+          </select>
         </div>
-        <button class="btn btn-add" onclick="addService()">Xizmat qo'shish</button>
+        <div id="materialInfo" style="display:none">
+          <div style="font-size:13px;color:#666;margin-bottom:6px;">
+            O'lchov: <b id="matUnit"></b> | Narx: <b id="matPrice"></b> so'm
+          </div>
+          <div class="form-group">
+            <label>Miqdor:</label>
+            <input type="number" id="matQty" value="1" min="0.1" step="0.1">
+          </div>
+          <div id="linkedPreview" class="linked-preview" style="display:none"></div>
+          <button class="btn btn-add" onclick="addMaterial()">Qo'shish</button>
+        </div>
       </div>
-    </details>
 
-    <!-- Qo'shilgan materiallar ro'yxati -->
-    <h3 style="font-size:15px;margin:14px 0 8px;color:#1565C0;">Materiallar:</h3>
-    <div id="materialsList"></div>
+      <!-- Xizmat qo'shish -->
+      <details style="margin-bottom: 10px;">
+        <summary style="cursor:pointer;font-weight:600;font-size:14px;padding:12px 14px;background:var(--tg-theme-secondary-bg-color,white);border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,0.06);">
+          Xizmat qo'lda qo'shish
+        </summary>
+        <div class="card" style="margin-top:6px;">
+          <div class="form-group">
+            <label>Xizmat:</label>
+            <select id="serviceSelect">
+              <option value="">-- Tanlang --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Miqdor:</label>
+            <input type="number" id="svcQty" value="1" min="0.1" step="0.1">
+          </div>
+          <button class="btn btn-add" onclick="addService()">Xizmat qo'shish</button>
+        </div>
+      </details>
 
-    <h3 style="font-size:15px;margin:14px 0 8px;color:#E65100;">Xizmatlar:</h3>
-    <div id="servicesList"></div>
+      <!-- Qo'shilgan materiallar ro'yxati -->
+      <h3 style="font-size:15px;margin:14px 0 8px;color:#1565C0;">Materiallar:</h3>
+      <div id="materialsList"></div>
 
-    <button class="btn btn-primary" onclick="switchTab('summary')" style="margin-top:16px;">Davom etish &rarr;</button>
+      <h3 style="font-size:15px;margin:14px 0 8px;color:#E65100;">Xizmatlar:</h3>
+      <div id="servicesList"></div>
+
+      <div class="step-nav">
+        <button class="btn btn-outline" onclick="goStep(1)">&larr; Ortga</button>
+        <button class="btn btn-primary" onclick="goStep(3)">Keyingi &rarr;</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Summary / Print preview -->
+    <div id="step-3" class="step-content">
+      <div id="printPreview" class="print-doc"></div>
+
+      <div class="step-nav">
+        <button class="btn btn-outline" onclick="goStep(2)">&larr; Ortga</button>
+        <button class="btn btn-primary" onclick="saveSmeta()">Saqlash va yuborish</button>
+      </div>
+    </div>
   </div>
 
-  <!-- TAB 3: HISOB (pechat ko'rinishi) -->
-  <div id="tab-summary" class="section">
-    <div id="printPreview" class="print-doc"></div>
+  <!-- ========== SCREEN: ADMIN ========== -->
+  <div id="screen-admin" class="screen">
+    <button class="back-btn" onclick="goScreen('home')">&larr; Ortga</button>
 
-    <button class="btn btn-primary" onclick="saveSmeta()">Saqlash va yuborish (PDF + Excel)</button>
-    <button class="btn btn-outline" onclick="switchTab('materials')">&larr; Materiallarga qaytish</button>
-  </div>
-
-  <!-- TAB 4: ADMIN (faqat admin uchun) -->
-  <div id="tab-admin" class="section">
     <!-- Materiallar -->
     <details class="adm-section" ontoggle="if(this.open) loadAdmMaterials()">
       <summary class="adm-summary">📦 Materiallar</summary>
@@ -734,6 +783,8 @@
     }
 
     // ==================== INIT ====================
+    var currentStep = 1;
+
     window.onload = function() {
       // Telegram Web App
       if (window.Telegram && Telegram.WebApp) {
@@ -752,11 +803,8 @@
         appData.telegramId = urlTgId;
       }
 
-      showLoading('Smetalar yuklanmoqda...');
-      var pending = 2;
-      function checkDone() { pending--; if (pending <= 0) hideLoading(); }
-      loadData(checkDone);
-      loadSmetaList(checkDone);
+      // Load data silently in background (no overlay)
+      loadData();
     };
 
     function loadData(onDone) {
@@ -769,7 +817,7 @@
           populateFamilies();
           populateServices();
           if (data.user && data.user.role === 'admin') {
-            document.getElementById('adminTabBtn').classList.add('visible');
+            document.getElementById('adminBtn').style.display = 'block';
           }
           if (onDone) onDone();
         })
@@ -777,6 +825,72 @@
           showStatus('Xatolik: ' + err.message, 'error');
           if (onDone) onDone();
         });
+    }
+
+    // ==================== NAVIGATION ====================
+    function goScreen(name) {
+      // Hide all screens
+      var screens = document.querySelectorAll('.screen');
+      for (var i = 0; i < screens.length; i++) screens[i].classList.remove('active');
+
+      // Show target screen
+      var target = document.getElementById('screen-' + name);
+      if (target) target.classList.add('active');
+
+      // Screen-specific actions
+      if (name === 'smetas') {
+        showLoading('Smetalar yuklanmoqda...');
+        loadSmetaList(function() { hideLoading(); });
+      }
+      if (name === 'new') {
+        currentStep = 1;
+        updateStepUI();
+      }
+
+      // Scroll to top
+      window.scrollTo(0, 0);
+    }
+
+    function goStep(n) {
+      // Validate before going forward
+      if (n === 2 && currentStep === 1) {
+        // No strict validation needed here, but could add
+      }
+      if (n === 3) {
+        renderSummary();
+      }
+
+      currentStep = n;
+      updateStepUI();
+      window.scrollTo(0, 0);
+    }
+
+    function goStepBack() {
+      if (currentStep > 1) {
+        goStep(currentStep - 1);
+      } else {
+        goScreen('home');
+      }
+    }
+
+    function updateStepUI() {
+      // Update step indicators
+      var steps = document.querySelectorAll('.steps-bar .step');
+      for (var i = 0; i < steps.length; i++) {
+        var stepNum = parseInt(steps[i].getAttribute('data-step'));
+        steps[i].classList.remove('active', 'done');
+        if (stepNum === currentStep) {
+          steps[i].classList.add('active');
+        } else if (stepNum < currentStep) {
+          steps[i].classList.add('done');
+        }
+      }
+
+      // Update step content
+      var contents = document.querySelectorAll('.step-content');
+      for (var j = 0; j < contents.length; j++) contents[j].classList.remove('active');
+      var target = document.getElementById('step-' + currentStep);
+      if (target) target.classList.add('active');
     }
 
     // ==================== SMETA LIST ====================
@@ -805,7 +919,7 @@
         countEl.style.display = 'none';
         el.innerHTML = '<div class="empty-msg">Hech qanday smeta topilmadi.<br><br>' +
           '<button class="btn btn-primary" style="width:auto;display:inline-block;padding:10px 24px;" ' +
-          'onclick="switchTab(\'info\')">Yangi smeta yaratish</button></div>';
+          'onclick="goScreen(\'new\')">Yangi smeta yaratish</button></div>';
         return;
       }
 
@@ -884,7 +998,9 @@
           hideLoading();
           if (result.error) { showStatus(result.error, 'error'); return; }
           showStatus('Smeta o\'chirildi!', 'success');
-          loadSmetaList();
+          // Reload list and stay on smetas screen
+          showLoading('Smetalar yuklanmoqda...');
+          loadSmetaList(function() { hideLoading(); });
         })
         .catch(function(err) {
           hideLoading();
@@ -1370,13 +1486,13 @@
       var korxona = document.getElementById('korxona').value;
       if (!korxona) {
         alert('Korxona nomini kiriting!');
-        switchTab('info');
+        goStep(1);
         return;
       }
 
       if (appData.materials.length === 0) {
         alert('Kamida bitta material qo\'shing!');
-        switchTab('materials');
+        goStep(2);
         return;
       }
 
@@ -1416,8 +1532,7 @@
             document.getElementById('korxona').value = '';
             document.getElementById('smetaNo').value = '';
             renderAll();
-            loadSmetaList();
-            switchTab('smetas');
+            goScreen('home');
           }
 
           gasPost('exportAndSend', { sheetName: result.sheetName, format: 'pdf', telegramId: appData.telegramId })
@@ -1434,22 +1549,14 @@
         });
     }
 
-    // ==================== TABS ====================
+    // ==================== TABS (legacy wrapper) ====================
     function switchTab(tab) {
-      var tabBtns = document.querySelectorAll('.tab');
-      var sections = document.querySelectorAll('.section');
-
-      tabBtns.forEach(function(t) { t.classList.remove('active'); });
-      sections.forEach(function(s) { s.classList.remove('active'); });
-
-      var btn = document.querySelector('.tab[data-tab="' + tab + '"]');
-      if (btn) btn.classList.add('active');
-
-      var sec = document.getElementById('tab-' + tab);
-      if (sec) sec.classList.add('active');
-
-      if (tab === 'summary') renderSummary();
-      if (tab === 'smetas') loadSmetaList();
+      // Backward-compatible wrapper for any remaining calls
+      if (tab === 'smetas') { goScreen('smetas'); return; }
+      if (tab === 'info') { goScreen('new'); goStep(1); return; }
+      if (tab === 'materials') { goScreen('new'); goStep(2); return; }
+      if (tab === 'summary') { goScreen('new'); goStep(3); return; }
+      if (tab === 'admin') { goScreen('admin'); return; }
     }
 
     // ==================== HELPERS ====================
