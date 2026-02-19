@@ -392,6 +392,11 @@
             <label>Nomi:</label>
             <input type="text" id="as_name" placeholder="Xizmat nomi">
           </div>
+          <div class="form-group">
+            <label>Oilasi:</label>
+            <input type="text" id="as_family" placeholder="Oilasi" list="asFamilyDL">
+            <datalist id="asFamilyDL"></datalist>
+          </div>
           <div style="display:flex;gap:8px;">
             <div class="form-group" style="flex:1">
               <label>O'lchov:</label>
@@ -698,12 +703,25 @@
     function populateServices() {
       var sel = document.getElementById('serviceSelect');
       sel.innerHTML = '<option value="">-- Xizmat tanlang --</option>';
+      var groups = {};
       for (var i = 0; i < appData.services.length; i++) {
         var s = appData.services[i];
-        var opt = document.createElement('option');
-        opt.value = s.name;
-        opt.textContent = s.name + ' (' + s.unit + ', ' + fmtNum(s.price) + ')';
-        sel.appendChild(opt);
+        var fam = s.family || 'Boshqa';
+        if (!groups[fam]) groups[fam] = [];
+        groups[fam].push(s);
+      }
+      var keys = Object.keys(groups).sort();
+      for (var k = 0; k < keys.length; k++) {
+        var grp = document.createElement('optgroup');
+        grp.label = keys[k];
+        for (var j = 0; j < groups[keys[k]].length; j++) {
+          var s = groups[keys[k]][j];
+          var opt = document.createElement('option');
+          opt.value = s.name;
+          opt.textContent = s.name + ' (' + s.unit + ', ' + fmtNum(s.price) + ')';
+          grp.appendChild(opt);
+        }
+        sel.appendChild(grp);
       }
     }
 
@@ -772,14 +790,14 @@
       appData.materials.push({ name: name, unit: unit, qty: qty, price: price, active: active });
     }
 
-    function addOrMergeService(name, unit, qty, price) {
+    function addOrMergeService(name, family, unit, qty, price) {
       for (var i = 0; i < appData.svcItems.length; i++) {
         if (appData.svcItems[i].name === name) {
           appData.svcItems[i].qty += qty;
           return;
         }
       }
-      appData.svcItems.push({ name: name, unit: unit, qty: qty, price: price });
+      appData.svcItems.push({ name: name, family: family, unit: unit, qty: qty, price: price, active: true });
     }
 
     function addMaterial() {
@@ -824,7 +842,7 @@
             }
             var svc = findService(svcName);
             if (svc) {
-              addOrMergeService(svc.name, svc.unit, svcQty, svc.price);
+              addOrMergeService(svc.name, svc.family || '', svc.unit, svcQty, svc.price);
             }
           }
           renderAll();
@@ -850,7 +868,7 @@
       var svc = findService(svcName);
       if (!svc) { alert('Xizmat topilmadi!'); return; }
 
-      addOrMergeService(svc.name, svc.unit, qty, svc.price);
+      addOrMergeService(svc.name, svc.family || '', svc.unit, qty, svc.price);
 
       renderAll();
       showStatus(svc.name + ' qo\'shildi!', 'success');
@@ -919,13 +937,17 @@
       var html = '';
       for (var i = 0; i < appData.svcItems.length; i++) {
         var s = appData.svcItems[i];
-        html += '<div class="mat-item service">';
+        var isTarmoq = s.family === 'Tarmoqqa ulash';
+        var borderColor = isTarmoq ? '#2E7D32' : '#e65100';
+        var cls = s.active !== false ? '' : ' inactive';
+        html += '<div class="mat-item service' + cls + '" style="border-left-color:' + borderColor + '">';
         html += '<div>';
-        html += '<div class="name">' + (i + 1) + '. ' + escHtml(s.name) + '</div>';
+        html += '<div class="name">' + (i + 1) + '. ' + escHtml(s.name) + (isTarmoq ? ' <span style="font-size:11px;color:#2E7D32;">[T]</span>' : '') + '</div>';
         html += '<div class="info"><span class="qty-edit" onclick="editSvcQty(' + i + ')">' + s.qty + ' ' + s.unit + '</span> x ' + fmtNum(s.price) + '</div>';
         html += '</div>';
         html += '<div class="sum">' + fmtNum(s.qty * s.price) + '</div>';
         html += '<div class="actions">';
+        html += '<button onclick="toggleSvc(' + i + ')" class="btn-toggle" style="color:' + (s.active !== false ? '#00aa00' : '#cc0000') + '">' + (s.active !== false ? '\u2713' : '\u2717') + '</button>';
         html += '<button class="btn-delete" onclick="deleteSvc(' + i + ')">\u2715</button>';
         html += '</div></div>';
       }
@@ -933,30 +955,47 @@
     }
 
     function renderSummary() {
-      var jamiMat = 0, jamiMatFinal = 0, jamiSvc = 0;
+      // Split services into regular and tarmoq
+      var regularSvcs = [];
+      var tarmoqSvcs = [];
+      for (var j = 0; j < appData.svcItems.length; j++) {
+        var sv = appData.svcItems[j];
+        if (sv.family === 'Tarmoqqa ulash') tarmoqSvcs.push(sv);
+        else regularSvcs.push(sv);
+      }
+
+      // Calculate sums
+      var jamiMat = 0, jamiMatFinal = 0;
+      var jamiSvc = 0, jamiSvcFinal = 0;
+      var jamiTarmoq = 0, jamiTarmoqFinal = 0;
 
       for (var i = 0; i < appData.materials.length; i++) {
         var m = appData.materials[i];
-        var s = m.qty * m.price;
-        jamiMat += s;
-        if (m.active) jamiMatFinal += s;
+        var ms = m.qty * m.price;
+        jamiMat += ms;
+        if (m.active) jamiMatFinal += ms;
       }
 
-      for (var j = 0; j < appData.svcItems.length; j++) {
-        jamiSvc += appData.svcItems[j].qty * appData.svcItems[j].price;
+      for (var j = 0; j < regularSvcs.length; j++) {
+        var ss = regularSvcs[j].qty * regularSvcs[j].price;
+        jamiSvc += ss;
+        if (regularSvcs[j].active !== false) jamiSvcFinal += ss;
+      }
+
+      for (var j = 0; j < tarmoqSvcs.length; j++) {
+        var ts = tarmoqSvcs[j].qty * tarmoqSvcs[j].price;
+        jamiTarmoq += ts;
+        if (tarmoqSvcs[j].active !== false) jamiTarmoqFinal += ts;
       }
 
       var kp = appData.settings.korxonaPercent || 18.71;
       var lp = appData.settings.loyihaPercent || 5;
       var qp = appData.settings.qqsPercent || 12;
 
-      // Korxona va loyiha BARCHA materiallar asosida (faol/nofaol farqi yo'q)
-      var baseForPercent = jamiMat + jamiSvc;
-      var korxona = baseForPercent * (kp / 100);
-      var afterKorxona = baseForPercent + korxona;
-      var loyiha = afterKorxona * (lp / 100);
-      // Jami: faqat faol materiallar + xizmatlar + korxona + loyiha
-      var jami = jamiMatFinal + jamiSvc + korxona + loyiha;
+      // New formulas
+      var korxona = jamiSvcFinal > 0 ? jamiSvcFinal * (kp / 100) : 0;
+      var loyiha = jamiMat * (lp / 100);
+      var jami = jamiMatFinal + jamiSvcFinal + jamiTarmoqFinal + korxona + loyiha;
       var qqs = jami * (qp / 100);
       var total = jami + qqs;
 
@@ -979,14 +1018,16 @@
       }
       h += '<div class="pd-no">' + (smetaNo ? '№' + escHtml(smetaNo) : '') + '</div>';
 
-      // === MATERIALLAR JADVALI (7 ustun, ✓ yo'q) ===
+      // === TABLE START ===
       h += '<table class="smeta-table"><thead><tr>';
       h += '<th style="width:25px">№</th><th>Material/Xizmat turi</th><th style="width:40px">Ed.</th>';
       h += '<th style="width:35px">Soni</th><th style="width:65px">Narx</th>';
       h += '<th style="width:65px">Summa</th><th style="width:70px">Yakuniy summa</th>';
       h += '</tr></thead><tbody>';
 
+      // === SECTION 1: MATERIALLAR (blue header) ===
       if (appData.materials.length > 0) {
+        h += '<tr><td colspan="7" style="background:#1565C0;color:white;font-weight:700;text-align:center;padding:6px;">Materiallar</td></tr>';
         for (var i = 0; i < appData.materials.length; i++) {
           var m = appData.materials[i];
           var ms = m.qty * m.price;
@@ -1001,7 +1042,6 @@
           h += '<td class="ar">' + (m.active ? fmtNum(ms) : '0') + '</td>';
           h += '</tr>';
         }
-
         h += '<tr class="tr-total">';
         h += '<td colspan="5" class="al"><b>Jami material:</b></td>';
         h += '<td class="ar"><b>' + fmtNum(jamiMat) + '</b></td>';
@@ -1009,30 +1049,55 @@
         h += '</tr>';
       }
 
-      // === XIZMATLAR (shu jadvalda davom etadi) ===
-      if (appData.svcItems.length > 0) {
-        for (var j = 0; j < appData.svcItems.length; j++) {
-          var sv = appData.svcItems[j];
+      // === SECTION 2: XIZMATLAR (orange header) ===
+      if (regularSvcs.length > 0) {
+        h += '<tr><td colspan="7" style="background:#E65100;color:white;font-weight:700;text-align:center;padding:6px;">Xizmatlar</td></tr>';
+        for (var j = 0; j < regularSvcs.length; j++) {
+          var sv = regularSvcs[j];
           var ss = sv.qty * sv.price;
-          h += '<tr>';
+          var cls = sv.active !== false ? '' : ' class="inactive-row"';
+          h += '<tr' + cls + '>';
           h += '<td>' + (j + 1) + '</td>';
           h += '<td class="al">' + escHtml(sv.name) + '</td>';
           h += '<td>' + escHtml(sv.unit) + '</td>';
           h += '<td>' + sv.qty + '</td>';
           h += '<td class="ar">' + fmtNum(sv.price) + '</td>';
           h += '<td class="ar">' + fmtNum(ss) + '</td>';
-          h += '<td class="ar">' + fmtNum(ss) + '</td>';
+          h += '<td class="ar">' + (sv.active !== false ? fmtNum(ss) : '0') + '</td>';
           h += '</tr>';
         }
-
         h += '<tr class="tr-total">';
         h += '<td colspan="5" class="al"><b>Jami xizmat:</b></td>';
         h += '<td class="ar"><b>' + fmtNum(jamiSvc) + '</b></td>';
-        h += '<td class="ar"><b>' + fmtNum(jamiSvc) + '</b></td>';
+        h += '<td class="ar"><b>' + fmtNum(jamiSvcFinal) + '</b></td>';
         h += '</tr>';
       }
 
-      // === HISOB-KITOB (shu jadvalda davom etadi) ===
+      // === SECTION 3: TARMOQQA ULASH (green header) ===
+      if (tarmoqSvcs.length > 0) {
+        h += '<tr><td colspan="7" style="background:#2E7D32;color:white;font-weight:700;text-align:center;padding:6px;">Tarmoqqa ulash</td></tr>';
+        for (var j = 0; j < tarmoqSvcs.length; j++) {
+          var sv = tarmoqSvcs[j];
+          var ss = sv.qty * sv.price;
+          var cls = sv.active !== false ? '' : ' class="inactive-row"';
+          h += '<tr' + cls + '>';
+          h += '<td>' + (j + 1) + '</td>';
+          h += '<td class="al">' + escHtml(sv.name) + '</td>';
+          h += '<td>' + escHtml(sv.unit) + '</td>';
+          h += '<td>' + sv.qty + '</td>';
+          h += '<td class="ar">' + fmtNum(sv.price) + '</td>';
+          h += '<td class="ar">' + fmtNum(ss) + '</td>';
+          h += '<td class="ar">' + (sv.active !== false ? fmtNum(ss) : '0') + '</td>';
+          h += '</tr>';
+        }
+        h += '<tr class="tr-total">';
+        h += '<td colspan="5" class="al"><b>Jami tarmoqqa ulash:</b></td>';
+        h += '<td class="ar"><b>' + fmtNum(jamiTarmoq) + '</b></td>';
+        h += '<td class="ar"><b>' + fmtNum(jamiTarmoqFinal) + '</b></td>';
+        h += '</tr>';
+      }
+
+      // === HISOB-KITOB ===
       h += '<tr><td colspan="6" class="al">Korxona harajatlari ' + kp + '%</td><td class="ar">' + fmtNum(korxona) + '</td></tr>';
       h += '<tr><td colspan="6" class="al">Loyiha xizmati ' + lp + '%</td><td class="ar">' + fmtNum(loyiha) + '</td></tr>';
       h += '<tr class="ct-jami"><td colspan="6" class="al"><b>Jami:</b></td><td class="ar"><b>' + fmtNum(jami) + '</b></td></tr>';
@@ -1062,6 +1127,11 @@
 
     function deleteSvc(idx) {
       appData.svcItems.splice(idx, 1);
+      renderAll();
+    }
+
+    function toggleSvc(i) {
+      appData.svcItems[i].active = appData.svcItems[i].active === false ? true : false;
       renderAll();
     }
 
@@ -1299,6 +1369,12 @@
         admData.services = list || [];
         renderAdmServices();
       }, 'Xizmatlar yuklanmoqda...');
+      admCall('getServiceFamilyList', {}, function(fams) {
+        if (!fams) return;
+        var dl = document.getElementById('asFamilyDL');
+        dl.innerHTML = '';
+        for (var i = 0; i < fams.length; i++) dl.innerHTML += '<option value="' + escHtml(fams[i]) + '">';
+      });
     }
 
     function renderAdmServices() {
@@ -1309,7 +1385,7 @@
       for (var i = 0; i < list.length; i++) {
         var s = list[i];
         h += '<div class="adm-item"><div><div class="ai-name">' + escHtml(s.name) + '</div>';
-        h += '<div class="ai-info">' + (s.unit || '') + ' | ' + fmtNum(s.price) + ' so\'m</div></div>';
+        h += '<div class="ai-info">' + escHtml(s.family || '') + ' | ' + (s.unit || '') + ' | ' + fmtNum(s.price) + ' so\'m</div></div>';
         h += '<div class="ai-acts"><button class="ai-edit" onclick="asEdit(' + i + ')">✎</button>';
         h += '<button class="ai-del" onclick="asDel(' + i + ')">✕</button></div></div>';
       }
@@ -1318,15 +1394,16 @@
 
     function asSave() {
       var n = document.getElementById('as_name').value.trim();
+      var f = document.getElementById('as_family').value.trim();
       var u = document.getElementById('as_unit').value.trim();
       var p = parseFloat(document.getElementById('as_price').value) || 0;
       if (!n) { alert('Nomini kiriting!'); return; }
       if (admData.editRow && admData.editType === 'svc') {
-        admCall('updateService', { row: admData.editRow, name: n, unit: u, price: p }, function() {
+        admCall('updateService', { row: admData.editRow, name: n, family: f, unit: u, price: p }, function() {
           showStatus('Yangilandi!', 'success'); asReset(); loadAdmServices(); loadData();
         }, 'Saqlanmoqda...');
       } else {
-        admCall('addService', { name: n, unit: u, price: p }, function() {
+        admCall('addService', { name: n, family: f, unit: u, price: p }, function() {
           showStatus('Qo\'shildi!', 'success'); asReset(); loadAdmServices(); loadData();
         }, 'Qo\'shilmoqda...');
       }
@@ -1336,6 +1413,7 @@
       var s = admData.services[i];
       admData.editRow = s.row; admData.editType = 'svc';
       document.getElementById('as_name').value = s.name;
+      document.getElementById('as_family').value = s.family || '';
       document.getElementById('as_unit').value = s.unit || '';
       document.getElementById('as_price').value = s.price || 0;
       document.getElementById('asBtn').textContent = 'Yangilash';
@@ -1352,6 +1430,7 @@
     function asReset() {
       admData.editRow = null; admData.editType = null;
       document.getElementById('as_name').value = '';
+      document.getElementById('as_family').value = '';
       document.getElementById('as_unit').value = '';
       document.getElementById('as_price').value = '';
       document.getElementById('asBtn').textContent = 'Qo\'shish';
