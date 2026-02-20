@@ -640,7 +640,7 @@
           <div style="display:flex;gap:8px;">
             <div class="form-group" style="flex:1">
               <label>O'lchov:</label>
-              <input type="text" id="am_unit" placeholder="sht, metr">
+              <select id="am_unit"><option value="dona">dona</option><option value="metr">metr</option></select>
             </div>
             <div class="form-group" style="flex:1">
               <label>Narx:</label>
@@ -670,7 +670,7 @@
           <div style="display:flex;gap:8px;">
             <div class="form-group" style="flex:1">
               <label>O'lchov:</label>
-              <input type="text" id="as_unit" placeholder="sht, metr">
+              <select id="as_unit"><option value="dona">dona</option><option value="metr">metr</option></select>
             </div>
             <div class="form-group" style="flex:1">
               <label>Narx:</label>
@@ -1762,7 +1762,7 @@
       admData.editRow = null; admData.editType = null;
       document.getElementById('am_name').value = '';
       document.getElementById('am_family').value = '';
-      document.getElementById('am_unit').value = '';
+      document.getElementById('am_unit').value = 'dona';
       document.getElementById('am_price').value = '';
       document.getElementById('amBtn').textContent = 'Qo\'shish';
     }
@@ -1835,7 +1835,7 @@
       admData.editRow = null; admData.editType = null;
       document.getElementById('as_name').value = '';
       document.getElementById('as_family').value = '';
-      document.getElementById('as_unit').value = '';
+      document.getElementById('as_unit').value = 'dona';
       document.getElementById('as_price').value = '';
       document.getElementById('asBtn').textContent = 'Qo\'shish';
     }
