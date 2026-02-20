@@ -443,15 +443,26 @@
 
   <div class="header">
     <img src="logo.png" alt="Logo" class="header-logo">
-    <div>
+    <div style="flex:1;">
       <h1>Elektroset Smeta</h1>
       <div class="header-sub">Sarf harajat smetasi tizimi</div>
     </div>
+    <button id="logoutBtn" onclick="logout()" style="display:none; background:none; border:1px solid rgba(255,255,255,0.4); color:white; padding:6px 12px; border-radius:8px; font-size:12px; cursor:pointer;">Chiqish</button>
   </div>
 
   <div id="statusMsg" class="status-msg"></div>
 
   <div class="content-wrap">
+
+  <!-- ========== SCREEN: LOGIN ========== -->
+  <div id="screen-login" class="screen">
+    <div class="card" style="text-align:center; padding:40px 20px;">
+      <div style="font-size:48px; margin-bottom:16px;">🔐</div>
+      <h2 style="margin:0 0 12px;">Kirish</h2>
+      <p style="color:#666; margin-bottom:20px;">Telegram botga <b>/login</b> yozing va yuborilgan havolani oching.</p>
+      <p style="color:#999; font-size:13px;">Yoki Telegram Mini App orqali kiring.</p>
+    </div>
+  </div>
 
   <!-- ========== SCREEN: HOME ========== -->
   <div id="screen-home" class="screen active">
@@ -804,7 +815,7 @@
     var currentStep = 1;
 
     window.onload = function() {
-      // Telegram Web App
+      // 1. Telegram Web App
       if (window.Telegram && Telegram.WebApp) {
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
@@ -814,14 +825,49 @@
         }
       }
 
-      // URL parametr orqali telegramId olish
       var urlParams = new URLSearchParams(window.location.search);
+
+      // 2. Magic link token tekshirish
+      var urlToken = urlParams.get('token');
+      if (urlToken && !appData.telegramId) {
+        showLoading('Tekshirilmoqda...');
+        gasGet('verifyToken', { token: urlToken }).then(function(res) {
+          hideLoading();
+          if (res.success) {
+            appData.telegramId = res.telegramId;
+            localStorage.setItem('tgid', res.telegramId);
+            localStorage.setItem('userName', res.name);
+            window.history.replaceState({}, '', '/');
+            loadData();
+          } else {
+            showStatus('Link eskirgan. Botga /login qayta yozing.', 'error');
+            goScreen('login');
+          }
+        }).catch(function() {
+          hideLoading();
+          goScreen('login');
+        });
+        return;
+      }
+
+      // 3. URL parametr orqali telegramId (mini app uchun)
       var urlTgId = urlParams.get('tgid');
       if (urlTgId && !appData.telegramId) {
         appData.telegramId = urlTgId;
       }
 
-      // Load data silently in background (no overlay)
+      // 4. localStorage dan oldingi sessiya
+      if (!appData.telegramId) {
+        var savedTgId = localStorage.getItem('tgid');
+        if (savedTgId) appData.telegramId = savedTgId;
+      }
+
+      // 5. Hech narsa yo'q → login sahifa
+      if (!appData.telegramId) {
+        goScreen('login');
+        return;
+      }
+
       loadData();
     };
 
@@ -837,6 +883,10 @@
           if (data.user && data.user.role === 'admin') {
             document.getElementById('adminBtn').style.display = 'block';
           }
+          // Chiqish tugmasini ko'rsatish (faqat desktop — Telegram Mini App da emas)
+          if (!window.Telegram || !Telegram.WebApp || !Telegram.WebApp.initDataUnsafe || !Telegram.WebApp.initDataUnsafe.user) {
+            document.getElementById('logoutBtn').style.display = 'block';
+          }
           if (onDone) onDone();
         })
         .catch(function(err) {
@@ -846,6 +896,15 @@
     }
 
     // ==================== NAVIGATION ====================
+    function logout() {
+      localStorage.removeItem('tgid');
+      localStorage.removeItem('userName');
+      appData.telegramId = null;
+      document.getElementById('logoutBtn').style.display = 'none';
+      document.getElementById('adminBtn').style.display = 'none';
+      goScreen('login');
+    }
+
     function goScreen(name) {
       // Hide all screens
       var screens = document.querySelectorAll('.screen');
