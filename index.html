@@ -465,8 +465,7 @@
       <div style="font-size:48px; margin-bottom:16px;">🔐</div>
       <h2 style="margin:0 0 12px;">Kirish</h2>
       <div id="login-msg" style="display:none; background:#FFF3E0; border:1px solid #FFB74D; border-radius:8px; padding:12px; margin-bottom:16px; color:#E65100; font-size:14px;"></div>
-      <p style="color:#666; margin-bottom:20px;">Telegram botga <b>/login</b> yozing va yuborilgan havolani oching.</p>
-      <p style="color:#999; font-size:13px;">Yoki Telegram Mini App orqali kiring.</p>
+      <p style="color:#666; margin-bottom:20px;">Telegram botda <b>🖥 Desktop</b> tugmasini bosing.</p>
     </div>
   </div>
 
@@ -838,6 +837,22 @@
 
       var urlParams = new URLSearchParams(window.location.search);
 
+      // Desktop redirect: Mini App dan brauzerga yo'naltirish
+      if (urlParams.get('mode') === 'desktop' && appData.telegramId) {
+        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#666;"><div style="text-align:center;"><div style="width:32px;height:32px;border:3px solid #ccc;border-top-color:#4CAF50;border-radius:50%;animation:spin .6s linear infinite;margin:0 auto 12px;"></div>Brauzer ochilmoqda...</div></div>';
+        gasGet('generateLoginToken', { tgid: appData.telegramId }).then(function(res) {
+          if (res.success && res.url) {
+            Telegram.WebApp.openLink(res.url);
+            setTimeout(function() { Telegram.WebApp.close(); }, 500);
+          } else {
+            document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#e53935;"><div style="text-align:center;">Xatolik: ' + (res.error || 'Noma\'lum') + '</div></div>';
+          }
+        }).catch(function() {
+          document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#e53935;"><div style="text-align:center;">Tarmoq xatoligi</div></div>';
+        });
+        return;
+      }
+
       // 2. Magic link token tekshirish
       var urlToken = urlParams.get('token');
       if (urlToken && !appData.telegramId) {
@@ -855,7 +870,7 @@
             var msgEl = document.getElementById('login-msg');
             msgEl.style.display = 'block';
             if (res.error === 'Token eskirgan yoki noto\'g\'ri') {
-              msgEl.innerHTML = '⚠️ Bu havola allaqachon ishlatilgan yoki muddati tugagan.<br>Botga <b>/login</b> qayta yozing.';
+              msgEl.innerHTML = '⚠️ Bu havola allaqachon ishlatilgan yoki muddati tugagan.<br>Botda <b>🖥 Desktop</b> tugmasini qayta bosing.';
             } else {
               msgEl.textContent = '⚠️ ' + (res.error || 'Xatolik yuz berdi.');
             }
