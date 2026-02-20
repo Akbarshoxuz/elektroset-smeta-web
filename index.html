@@ -913,7 +913,7 @@
           populateFamilies();
           populateServices();
           if (data.user) appData.userRole = data.user.role || '';
-          if (data.user && data.user.role === 'admin') {
+          if (data.user && (data.user.role === 'admin' || data.user.role === 'superadmin')) {
             document.getElementById('adminBtn').style.display = 'block';
           }
           // Chiqish tugmasini ko'rsatish (faqat desktop — Telegram Mini App da emas)
@@ -1632,7 +1632,7 @@
         .then(function(result) {
           if (result.error) { hideLoading(); showStatus(result.error, 'error'); return; }
 
-          var isAdmin = appData.userRole === 'admin';
+          var isAdmin = appData.userRole === 'admin' || appData.userRole === 'superadmin';
           showLoading(isAdmin ? 'PDF + Excel tayyorlanmoqda...' : 'PDF tayyorlanmoqda...');
           var exportDone = { pdf: false, excel: !isAdmin, pdfOk: false, excelOk: false };
 
@@ -2047,7 +2047,7 @@
       var h = '';
       for (var i = 0; i < list.length; i++) {
         var u = list[i];
-        var badge = u.role === 'admin' ? ' \uD83D\uDD11' : '';
+        var badge = (u.role === 'admin' || u.role === 'superadmin') ? ' \uD83D\uDD11' : '';
         h += '<div class="adm-item"><div><div class="ai-name">' + escHtml(u.name) + badge + '</div>';
         h += '<div class="ai-info">' + (u.role || '') + ' | TG:' + (u.telegramId || '-') + ' | ' + (u.email || '-') + '</div></div>';
         h += '<div class="ai-acts"><button class="ai-edit" onclick="auEdit(' + i + ')">✎</button>';
