@@ -1020,7 +1020,7 @@
       var html = '';
       for (var i = 0; i < list.length; i++) {
         var s = list[i];
-        var korxona = s.korxona || 'Noma\'lum';
+        var korxona = String(s.korxona || 'Noma\'lum');
         var safeSheet = s.sheetName.replace(/'/g, "\\'");
         var safeKorxona = korxona.replace(/'/g, "\\'");
         var loc = s.location ? ' · ' + escHtml(s.location) : '';
