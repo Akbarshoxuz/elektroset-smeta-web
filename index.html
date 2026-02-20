@@ -1554,14 +1554,15 @@
     function saveSmeta() {
       var korxona = document.getElementById('korxona').value;
       if (!korxona) {
-        alert('Korxona nomini kiriting!');
         goStep(1);
+        showStatus('Korxona nomini kiriting!', 'error');
+        setTimeout(function() { document.getElementById('korxona').focus(); }, 300);
         return;
       }
 
       if (appData.materials.length === 0) {
-        alert('Kamida bitta material qo\'shing!');
         goStep(2);
+        showStatus('Kamida bitta material qo\'shing!', 'error');
         return;
       }
 
