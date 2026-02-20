@@ -785,6 +785,7 @@
       families: {},
       services: [],
       settings: { loyihaPercent: 5, qqsPercent: 12, korxonaPercent: 18.71 },
+      userRole: '',
       materials: [],    // qo'shilgan materiallar
       svcItems: [],     // qo'shilgan xizmatlar
       telegramId: null
@@ -889,6 +890,7 @@
           if (data.settings) appData.settings = data.settings;
           populateFamilies();
           populateServices();
+          if (data.user) appData.userRole = data.user.role || '';
           if (data.user && data.user.role === 'admin') {
             document.getElementById('adminBtn').style.display = 'block';
           }
@@ -1042,8 +1044,10 @@
         html += '</div>';
         html += '<div class="smeta-acts">';
         html += '<button class="btn-pdf" onclick="exportSmeta(\'' + safeSheet + '\',\'pdf\')">PDF</button>';
-        html += '<button class="btn-xlsx" onclick="exportSmeta(\'' + safeSheet + '\',\'xlsx\')">XLS</button>';
-        html += '<button class="btn-del" onclick="deleteSmeta(\'' + safeSheet + '\',\'' + safeKorxona + '\')">✕</button>';
+        if (appData.userRole === 'admin') {
+          html += '<button class="btn-xlsx" onclick="exportSmeta(\'' + safeSheet + '\',\'xlsx\')">XLS</button>';
+          html += '<button class="btn-del" onclick="deleteSmeta(\'' + safeSheet + '\',\'' + safeKorxona + '\')">✕</button>';
+        }
         html += '</div>';
         html += '</div>';
       }
@@ -1585,8 +1589,9 @@
         .then(function(result) {
           if (result.error) { hideLoading(); showStatus(result.error, 'error'); return; }
 
-          showLoading('PDF + Excel tayyorlanmoqda...');
-          var exportDone = { pdf: false, excel: false, pdfOk: false, excelOk: false };
+          var isAdmin = appData.userRole === 'admin';
+          showLoading(isAdmin ? 'PDF + Excel tayyorlanmoqda...' : 'PDF tayyorlanmoqda...');
+          var exportDone = { pdf: false, excel: !isAdmin, pdfOk: false, excelOk: false };
 
           function checkExportDone() {
             if (!exportDone.pdf || !exportDone.excel) return;
@@ -1611,9 +1616,11 @@
             .then(function(res) { exportDone.pdf = true; exportDone.pdfOk = res && res.success; checkExportDone(); })
             .catch(function() { exportDone.pdf = true; checkExportDone(); });
 
-          gasPost('exportAndSend', { sheetName: result.sheetName, format: 'xlsx', telegramId: appData.telegramId })
-            .then(function(res) { exportDone.excel = true; exportDone.excelOk = res && res.success; checkExportDone(); })
-            .catch(function() { exportDone.excel = true; checkExportDone(); });
+          if (isAdmin) {
+            gasPost('exportAndSend', { sheetName: result.sheetName, format: 'xlsx', telegramId: appData.telegramId })
+              .then(function(res) { exportDone.excel = true; exportDone.excelOk = res && res.success; checkExportDone(); })
+              .catch(function() { exportDone.excel = true; checkExportDone(); });
+          }
         })
         .catch(function(err) {
           hideLoading();
