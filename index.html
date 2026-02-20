@@ -152,9 +152,6 @@
     .mat-item.inactive {
       opacity: 0.5; border-left-color: #999;
     }
-    .mat-item.inactive .name {
-      text-decoration: line-through;
-    }
     .mat-item .name { font-weight: 600; font-size: 13px; flex: 1; }
     .mat-item .info { font-size: 12px; color: #888; }
     .mat-item .sum { font-weight: 700; font-size: 14px; color: var(--tg-theme-button-color, #1565C0); }
@@ -379,7 +376,7 @@
     .print-doc .tr-total td { background: #BBDEFB; font-weight: 700; }
     .print-doc td.al { text-align: left; }
     .print-doc td.ar { text-align: right; white-space: nowrap; }
-    .print-doc .inactive-row td { color: #999; text-decoration: line-through; }
+    .print-doc .inactive-row td { color: #999; }
     .print-doc .ct-jami td { background: #FFF9C4; font-weight: 700; }
     .print-doc .ct-total td { background: #FFCC02; font-weight: 700; font-size: 12px; }
     .print-doc .pd-izoh {
@@ -1452,7 +1449,7 @@
           h += '<td>' + m.qty + '</td>';
           h += '<td class="ar">' + fmtNum(m.price) + '</td>';
           h += '<td class="ar">' + fmtNum(ms) + '</td>';
-          h += '<td class="ar">' + (m.active ? fmtNum(ms) : '0') + '</td>';
+          h += '<td class="ar">' + (m.active ? fmtNum(ms) : '') + '</td>';
           h += '</tr>';
         }
         h += '<tr class="tr-total">';
@@ -1476,7 +1473,7 @@
           h += '<td>' + sv.qty + '</td>';
           h += '<td class="ar">' + fmtNum(sv.price) + '</td>';
           h += '<td class="ar">' + fmtNum(ss) + '</td>';
-          h += '<td class="ar">' + (sv.active !== false ? fmtNum(ss) : '0') + '</td>';
+          h += '<td class="ar">' + (sv.active !== false ? fmtNum(ss) : '') + '</td>';
           h += '</tr>';
         }
         h += '<tr class="tr-total">';
@@ -1500,7 +1497,7 @@
           h += '<td>' + sv.qty + '</td>';
           h += '<td class="ar">' + fmtNum(sv.price) + '</td>';
           h += '<td class="ar">' + fmtNum(ss) + '</td>';
-          h += '<td class="ar">' + (sv.active !== false ? fmtNum(ss) : '0') + '</td>';
+          h += '<td class="ar">' + (sv.active !== false ? fmtNum(ss) : '') + '</td>';
           h += '</tr>';
         }
         h += '<tr class="tr-total">';
