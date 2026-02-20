@@ -464,6 +464,7 @@
     <div class="card" style="text-align:center; padding:40px 20px;">
       <div style="font-size:48px; margin-bottom:16px;">🔐</div>
       <h2 style="margin:0 0 12px;">Kirish</h2>
+      <div id="login-msg" style="display:none; background:#FFF3E0; border:1px solid #FFB74D; border-radius:8px; padding:12px; margin-bottom:16px; color:#E65100; font-size:14px;"></div>
       <p style="color:#666; margin-bottom:20px;">Telegram botga <b>/login</b> yozing va yuborilgan havolani oching.</p>
       <p style="color:#999; font-size:13px;">Yoki Telegram Mini App orqali kiring.</p>
     </div>
@@ -850,8 +851,14 @@
             window.history.replaceState({}, '', '/');
             loadData();
           } else {
-            showStatus('Link eskirgan. Botga /login qayta yozing.', 'error');
             goScreen('login');
+            var msgEl = document.getElementById('login-msg');
+            msgEl.style.display = 'block';
+            if (res.error === 'Token eskirgan yoki noto\'g\'ri') {
+              msgEl.innerHTML = '⚠️ Bu havola allaqachon ishlatilgan yoki muddati tugagan.<br>Botga <b>/login</b> qayta yozing.';
+            } else {
+              msgEl.textContent = '⚠️ ' + (res.error || 'Xatolik yuz berdi.');
+            }
           }
         }).catch(function() {
           hideLoading();
