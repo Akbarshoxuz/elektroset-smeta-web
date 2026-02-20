@@ -368,15 +368,15 @@
       border: 1px solid #bbb; padding: 4px 5px; text-align: center;
     }
     .print-doc th {
-      background: linear-gradient(135deg, #1565C0, #1976D2);
-      color: white; font-size: 9px; font-weight: 600;
+      background: #E0E0E0;
+      font-size: 9px; font-weight: 600;
     }
-    .print-doc .tr-total td { background: #BBDEFB; font-weight: 700; }
+    .print-doc .tr-total td { font-weight: 700; }
     .print-doc td.al { text-align: left; }
     .print-doc td.ar { text-align: right; white-space: nowrap; }
     .print-doc .inactive-row td {}
-    .print-doc .ct-jami td { background: #FFF9C4; font-weight: 700; }
-    .print-doc .ct-total td { background: #FFCC02; font-weight: 700; font-size: 12px; }
+    .print-doc .ct-jami td { font-weight: 700; }
+    .print-doc .ct-total td { font-weight: 700; font-size: 12px; }
     .print-doc .pd-izoh {
       font-size: 9px; color: #555; margin-top: 10px; line-height: 1.4;
       padding: 8px; background: #f9f9f9; border-radius: 6px;
@@ -535,6 +535,10 @@
         <div class="form-group">
           <label>Korxona / Buyurtmachi:</label>
           <input type="text" id="korxona" placeholder="Korxona nomi">
+        </div>
+        <div class="form-group">
+          <label>Faoliyat nomi:</label>
+          <input type="text" id="faoliyat" placeholder="Tomchilab sug'orish ishlari">
         </div>
         <div class="form-group">
           <label>Smeta raqami:</label>
@@ -1413,6 +1417,7 @@
       var mfy = document.getElementById('mfy').value || '';
       var kocha = document.getElementById('kocha').value || '';
       var korxonaName = document.getElementById('korxona').value || '';
+      var faoliyat = document.getElementById('faoliyat').value || '';
       var smetaNo = document.getElementById('smetaNo').value || '';
 
       var h = '';
@@ -1420,7 +1425,10 @@
       // Sarlavha
       var addr = [viloyat, tuman, mfy, kocha].filter(function(x) { return x; }).join(', ');
       if (addr && korxonaName) {
-        h += '<div class="pd-title">' + escHtml(addr) + ' joylashgan "' + escHtml(korxonaName) + '" uchun sarf harajat smetasi</div>';
+        var titleText = addr + ' joylashgan "' + escHtml(korxonaName) + '"';
+        if (faoliyat) titleText += ' ga qarashli "' + escHtml(faoliyat) + '"';
+        titleText += ' uchun sarf harajat smetasi';
+        h += '<div class="pd-title">' + titleText + '</div>';
       } else {
         h += '<div class="pd-title">Sarf harajat smetasi</div>';
       }
@@ -1433,9 +1441,9 @@
       h += '<th style="width:85px">Summa</th><th style="width:85px">Yakuniy summa</th>';
       h += '</tr></thead><tbody>';
 
-      // === SECTION 1: MATERIALLAR (blue header) ===
+      // === SECTION 1: MATERIALLAR ===
       if (appData.materials.length > 0) {
-        h += '<tr><td colspan="7" style="background:linear-gradient(135deg,#1565C0,#1976D2);color:white;font-weight:700;text-align:center;padding:6px;">Materiallar</td></tr>';
+        h += '<tr><td colspan="7" style="background:#E0E0E0;font-weight:700;text-align:center;padding:6px;">Material turi</td></tr>';
         for (var i = 0; i < appData.materials.length; i++) {
           var m = appData.materials[i];
           var ms = m.qty * m.price;
@@ -1457,11 +1465,14 @@
         h += '</tr>';
       }
 
-      // === SECTION 2: XIZMATLAR (orange header) ===
-      if (regularSvcs.length > 0) {
-        h += '<tr><td colspan="7" style="background:linear-gradient(135deg,#E65100,#FF6D00);color:white;font-weight:700;text-align:center;padding:6px;">Xizmatlar</td></tr>';
-        for (var j = 0; j < regularSvcs.length; j++) {
-          var sv = regularSvcs[j];
+      // === SECTION 2: XIZMATLAR (regular + tarmoq birgalikda) ===
+      var allSvcs = regularSvcs.concat(tarmoqSvcs);
+      if (allSvcs.length > 0) {
+        h += '<tr><td colspan="7" style="background:#E0E0E0;font-weight:700;text-align:center;padding:6px;">Xizmat turi</td></tr>';
+        var jamiAllSvc = jamiSvc + jamiTarmoq;
+        var jamiAllSvcFinal = jamiSvcFinal + jamiTarmoqFinal;
+        for (var j = 0; j < allSvcs.length; j++) {
+          var sv = allSvcs[j];
           var ss = sv.qty * sv.price;
           var cls = sv.active !== false ? '' : ' class="inactive-row"';
           h += '<tr' + cls + '>';
@@ -1476,32 +1487,8 @@
         }
         h += '<tr class="tr-total">';
         h += '<td colspan="5" class="al"><b>Jami xizmat:</b></td>';
-        h += '<td class="ar"><b>' + fmtNum(jamiSvc) + '</b></td>';
-        h += '<td class="ar"><b>' + fmtNum(jamiSvcFinal) + '</b></td>';
-        h += '</tr>';
-      }
-
-      // === SECTION 3: TARMOQQA ULASH (green header) ===
-      if (tarmoqSvcs.length > 0) {
-        h += '<tr><td colspan="7" style="background:linear-gradient(135deg,#2E7D32,#43A047);color:white;font-weight:700;text-align:center;padding:6px;">Tarmoqqa ulash</td></tr>';
-        for (var j = 0; j < tarmoqSvcs.length; j++) {
-          var sv = tarmoqSvcs[j];
-          var ss = sv.qty * sv.price;
-          var cls = sv.active !== false ? '' : ' class="inactive-row"';
-          h += '<tr' + cls + '>';
-          h += '<td>' + (j + 1) + '</td>';
-          h += '<td class="al">' + escHtml(sv.name) + '</td>';
-          h += '<td>' + escHtml(sv.unit) + '</td>';
-          h += '<td>' + sv.qty + '</td>';
-          h += '<td class="ar">' + fmtNum(sv.price) + '</td>';
-          h += '<td class="ar">' + fmtNum(ss) + '</td>';
-          h += '<td class="ar">' + (sv.active !== false ? fmtNum(ss) : '') + '</td>';
-          h += '</tr>';
-        }
-        h += '<tr class="tr-total">';
-        h += '<td colspan="5" class="al"><b>Jami tarmoqqa ulash:</b></td>';
-        h += '<td class="ar"><b>' + fmtNum(jamiTarmoq) + '</b></td>';
-        h += '<td class="ar"><b>' + fmtNum(jamiTarmoqFinal) + '</b></td>';
+        h += '<td class="ar"><b>' + fmtNum(jamiAllSvc) + '</b></td>';
+        h += '<td class="ar"><b>' + fmtNum(jamiAllSvcFinal) + '</b></td>';
         h += '</tr>';
       }
 
@@ -1585,6 +1572,7 @@
         mfy: document.getElementById('mfy').value,
         kocha: document.getElementById('kocha').value,
         korxona: korxona,
+        faoliyat: document.getElementById('faoliyat').value,
         smetaNo: document.getElementById('smetaNo').value,
         materials: appData.materials,
         services: appData.svcItems
@@ -1612,6 +1600,7 @@
             document.getElementById('mfy').value = '';
             document.getElementById('kocha').value = '';
             document.getElementById('korxona').value = '';
+            document.getElementById('faoliyat').value = '';
             document.getElementById('smetaNo').value = '';
             renderAll();
             goScreen('home');
