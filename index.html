@@ -940,9 +940,20 @@
     }
 
     function goStep(n) {
-      // Validate before going forward
+      // Step 1 → 2: korxona nomi majburiy
       if (n === 2 && currentStep === 1) {
-        // No strict validation needed here, but could add
+        var korxonaEl = document.getElementById('korxona');
+        if (!korxonaEl.value.trim()) {
+          korxonaEl.style.border = '2px solid #e53935';
+          korxonaEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          korxonaEl.focus();
+          showStatus('Korxona nomini kiriting!', 'error');
+          korxonaEl.addEventListener('input', function handler() {
+            korxonaEl.style.border = '';
+            korxonaEl.removeEventListener('input', handler);
+          });
+          return;
+        }
       }
       if (n === 3) {
         renderSummary();
@@ -1556,11 +1567,21 @@
 
     // ==================== SAVE ====================
     function saveSmeta() {
-      var korxona = document.getElementById('korxona').value;
+      var korxonaEl = document.getElementById('korxona');
+      var korxona = korxonaEl.value;
       if (!korxona) {
-        goStep(1);
+        currentStep = 1;
+        updateStepUI();
         showStatus('Korxona nomini kiriting!', 'error');
-        setTimeout(function() { document.getElementById('korxona').focus(); }, 300);
+        setTimeout(function() {
+          korxonaEl.style.border = '2px solid #e53935';
+          korxonaEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          korxonaEl.focus();
+          korxonaEl.addEventListener('input', function handler() {
+            korxonaEl.style.border = '';
+            korxonaEl.removeEventListener('input', handler);
+          });
+        }, 300);
         return;
       }
 
