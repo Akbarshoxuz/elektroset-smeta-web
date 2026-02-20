@@ -1897,7 +1897,7 @@
         var fam = appData.families[keys[k]];
         for (var i = 0; i < fam.length; i++) {
           var opt = document.createElement('option');
-          opt.value = fam[i].name;
+          opt.value = fam[i].id;
           opt.textContent = fam[i].name;
           grp.appendChild(opt);
         }
@@ -1931,7 +1931,7 @@
       el.innerHTML = h;
     }
 
-    function alAddChild(name, qty) {
+    function alAddChild(id, qty) {
       var c = document.getElementById('al_children');
       var div = document.createElement('div');
       div.className = 'al-row';
@@ -1942,9 +1942,9 @@
         var fam = appData.families[keys[k]];
         for (var i = 0; i < fam.length; i++) {
           var opt = document.createElement('option');
-          opt.value = fam[i].name;
+          opt.value = fam[i].id;
           opt.textContent = fam[i].name;
-          if (name && fam[i].name === name) opt.selected = true;
+          if (id && String(fam[i].id) === String(id)) opt.selected = true;
           sel.appendChild(opt);
         }
       }
@@ -1957,7 +1957,7 @@
       c.appendChild(div);
     }
 
-    function alAddSvc(name, qty) {
+    function alAddSvc(id, qty) {
       var c = document.getElementById('al_svcs');
       var div = document.createElement('div');
       div.className = 'al-row';
@@ -1966,9 +1966,9 @@
       for (var i = 0; i < appData.services.length; i++) {
         var s = appData.services[i];
         var opt = document.createElement('option');
-        opt.value = s.name;
+        opt.value = s.id;
         opt.textContent = s.name;
-        if (name && s.name === name) opt.selected = true;
+        if (id && String(s.id) === String(id)) opt.selected = true;
         sel.appendChild(opt);
       }
       var inp = document.createElement('input');
@@ -1982,32 +1982,32 @@
 
     function alEdit(i) {
       var l = admData.links[i];
-      document.getElementById('al_parent').value = l.parent;
+      document.getElementById('al_parent').value = l.parentId;
       document.getElementById('al_children').innerHTML = '';
       document.getElementById('al_svcs').innerHTML = '';
-      for (var c = 0; c < l.children.length; c++) alAddChild(l.children[c].name, l.children[c].qty);
-      for (var s = 0; s < l.services.length; s++) alAddSvc(l.services[s].name, l.services[s].qty);
+      for (var c = 0; c < l.children.length; c++) alAddChild(l.children[c].id, l.children[c].qty);
+      for (var s = 0; s < l.services.length; s++) alAddSvc(l.services[s].id, l.services[s].qty);
       document.getElementById('al_parent').scrollIntoView({ behavior: 'smooth' });
     }
 
     function alSave() {
-      var parent = document.getElementById('al_parent').value;
-      if (!parent) { alert('Material tanlang!'); return; }
+      var parentId = document.getElementById('al_parent').value;
+      if (!parentId) { alert('Material tanlang!'); return; }
       var children = [];
       var childRows = document.querySelectorAll('#al_children .al-row');
       for (var i = 0; i < childRows.length; i++) {
         var s = childRows[i].querySelector('select');
         var inp = childRows[i].querySelector('input');
-        if (s.value) children.push({ name: s.value, qty: parseFloat(inp.value) || 1 });
+        if (s.value) children.push({ id: s.value, qty: parseFloat(inp.value) || 1 });
       }
       var services = [];
       var svcRows = document.querySelectorAll('#al_svcs .al-row');
       for (var j = 0; j < svcRows.length; j++) {
         var s2 = svcRows[j].querySelector('select');
         var inp2 = svcRows[j].querySelector('input');
-        if (s2.value) services.push({ name: s2.value, qty: parseFloat(inp2.value) || 1 });
+        if (s2.value) services.push({ id: s2.value, qty: parseFloat(inp2.value) || 1 });
       }
-      admCall('saveLink', { parentName: parent, children: children, services: services }, function() {
+      admCall('saveLink', { parentId: parentId, children: children, services: services }, function() {
         showStatus('Saqlandi!', 'success'); alResetForm(); loadAdmLinks();
       }, 'Saqlanmoqda...');
     }
