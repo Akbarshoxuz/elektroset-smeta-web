@@ -5,6 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Elektroset Smeta</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('mode') === 'redirect') {
+        var tgid = params.get('tgid') || '';
+        var desktopUrl = window.location.origin + '/?mode=desktop&tgid=' + tgid;
+        if (window.Telegram && Telegram.WebApp) {
+          Telegram.WebApp.ready();
+          setTimeout(function() {
+            Telegram.WebApp.openLink(desktopUrl);
+            Telegram.WebApp.close();
+          }, 100);
+        } else {
+          window.location.href = desktopUrl;
+        }
+      }
+    })();
+  </script>
   <style>
     * {
       box-sizing: border-box; margin: 0; padding: 0;
@@ -260,28 +278,74 @@
     }
     .smeta-count { font-size: 11px; color: #999; text-align: right; margin-bottom: 6px; }
 
-    /* Smeta list — compact */
-    .smeta-row {
-      display: flex; align-items: center; gap: 8px;
-      padding: 10px; background: var(--tg-theme-secondary-bg-color, white);
-      border-radius: 10px; margin-bottom: 5px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-      transition: transform 0.15s;
+    /* Smeta card — compact */
+    .smeta-card {
+      background: var(--tg-theme-secondary-bg-color, white);
+      border-radius: 10px; margin-bottom: 6px; padding: 8px 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      position: relative;
     }
-    .smeta-row:active { transform: scale(0.98); }
-    .smeta-num { font-size: 11px; color: #999; font-weight: 700; min-width: 18px; text-align: center; }
-    .smeta-info { flex: 1; min-width: 0; overflow: hidden; }
-    .smeta-name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .smeta-meta { font-size: 10px; color: #999; }
-    .smeta-acts { display: flex; gap: 4px; flex-shrink: 0; }
-    .smeta-acts button {
-      padding: 6px 8px; border: none; border-radius: 6px;
-      font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    .smeta-card-head {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;
     }
-    .smeta-acts button:active { transform: scale(0.9); }
+    .smeta-card-title {
+      font-weight: 700; font-size: 13px; color: var(--tg-theme-text-color, #222);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;
+    }
+    .smeta-card-status {
+      font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 8px;
+      flex-shrink: 0; margin-left: 6px;
+    }
+    .status-yangi { background: #e8f5e9; color: #2e7d32; }
+    .status-tahrirlangan { background: #fff3e0; color: #e65100; }
+    .smeta-card-meta {
+      font-size: 11px; color: #888; line-height: 1.5;
+    }
+    .smeta-card-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(0,0,0,0.05);
+    }
+    .smeta-card-summa { font-size: 13px; font-weight: 700; color: var(--tg-theme-text-color, #111); }
+    .smeta-card-id { font-size: 10px; color: #bbb; font-weight: 600; }
+    .smeta-card-acts { display: flex; gap: 4px; }
+    .smeta-card-acts button {
+      padding: 4px 10px; border: none; border-radius: 6px;
+      font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    }
+    .smeta-card-acts button:active { transform: scale(0.9); }
     .btn-pdf { background: #e3f2fd; color: #1565c0; }
     .btn-xlsx { background: #e8f5e9; color: #2e7d32; }
+    .btn-sht { background: #fff3e0; color: #e65100; }
+    .sht-done { display:inline-block; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:600; background:#e8f5e9; color:#2e7d32; border:1px solid #a5d6a7; cursor:pointer; }
     .btn-del { background: #ffebee; color: #c62828; }
+    /* Selection mode */
+    .smeta-card .smeta-chk-wrap {
+      display: none; position: absolute; left: -2px; top: 50%; transform: translateY(-50%);
+      z-index: 2;
+    }
+    .select-mode .smeta-card .smeta-chk-wrap { display: flex; }
+    .select-mode .smeta-card { padding-left: 32px; }
+    .smeta-chk-wrap input[type="checkbox"] {
+      width: 20px; height: 20px; cursor: pointer; accent-color: #c62828;
+    }
+    /* Batch bar */
+    .batch-bar {
+      display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+      background: #c62828; color: white; padding: 12px 20px;
+      justify-content: space-between; align-items: center;
+      box-shadow: 0 -2px 12px rgba(0,0,0,0.2);
+      animation: slideUp 0.2s ease;
+    }
+    .batch-bar.active { display: flex; }
+    .batch-bar-text { font-size: 14px; font-weight: 600; }
+    .batch-bar-btns { display: flex; gap: 8px; }
+    .batch-bar-btns button {
+      padding: 8px 16px; border: none; border-radius: 8px; font-size: 13px;
+      font-weight: 600; cursor: pointer;
+    }
+    .btn-batch-cancel { background: rgba(255,255,255,0.2); color: white; }
+    .btn-batch-delete { background: white; color: #c62828; }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
     /* Admin panel */
     .adm-section {
@@ -435,6 +499,17 @@
       outline: none;
       box-shadow: 0 0 0 3px rgba(21,101,192,0.15);
     }
+
+    /* Turi modal */
+    .modal-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:1000; }
+    .modal-box { background:#fff; border-radius:12px; padding:20px; max-width:400px; width:90%; max-height:80vh; overflow-y:auto; }
+    .modal-box h3 { margin:0 0 16px; text-align:center; }
+    .turi-list { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+    .turi-btn { padding:12px 16px; border:1px solid #ddd; border-radius:8px; background:#fff; text-align:left; cursor:pointer; font-size:14px; transition:background 0.2s; }
+    .turi-btn:hover { background:#e3f2fd; }
+    .turi-btn .turi-tags { margin-top:4px; display:flex; flex-wrap:wrap; gap:4px; }
+    .turi-btn .turi-tag { font-size:11px; padding:2px 6px; border-radius:4px; background:#e0e0e0; color:#555; }
+    .turi-tag.active { background:#c8e6c9; color:#2e7d32; }
   </style>
 </head>
 <body>
@@ -474,6 +549,7 @@
     <div class="home-actions">
       <button class="home-btn home-btn-new" onclick="goScreen('new')">+ Yangi</button>
       <button class="home-btn home-btn-list" onclick="goScreen('smetas')">Smetalar</button>
+      <button class="home-btn" onclick="goScreen('shartnomalar')" style="background:#fff3e0;color:#e65100;">Shartnomalar</button>
     </div>
     <button class="home-admin-btn" id="adminBtn" onclick="goScreen('admin')">Admin panel</button>
   </div>
@@ -482,10 +558,30 @@
   <div id="screen-smetas" class="screen">
     <button class="back-btn" onclick="goScreen('home')">&larr; Ortga</button>
     <div class="smeta-search" id="smetaSearchWrap" style="display:none;">
-      <input type="text" id="smetaSearch" placeholder="Qidirish..." oninput="filterSmetas()">
+      <input type="text" id="smetaSearch" placeholder="Qidirish..." oninput="filterSmetas()" onkeyup="filterSmetas()">
     </div>
-    <div id="smetaCount" class="smeta-count" style="display:none;"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin:0 16px;">
+      <div id="smetaCount" class="smeta-count" style="display:none;flex:1;margin:0;"></div>
+      <button id="selectModeBtn" class="btn" style="display:none;padding:5px 12px;font-size:12px;background:#f5f5f5;color:#666;border:1px solid #ddd;border-radius:8px;cursor:pointer;" onclick="toggleSelectMode()">Tanlash</button>
+    </div>
     <div id="smetaList"></div>
+    <div id="batchBar" class="batch-bar">
+      <span class="batch-bar-text" id="batchBarText">0 ta tanlandi</span>
+      <div class="batch-bar-btns">
+        <button class="btn-batch-cancel" onclick="toggleSelectMode()">Bekor</button>
+        <button class="btn-batch-delete" onclick="batchDeleteSmetas()">O'chirish</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== SCREEN: SHARTNOMALAR ========== -->
+  <div id="screen-shartnomalar" class="screen">
+    <button class="back-btn" onclick="goScreen('home')">&larr; Ortga</button>
+    <div id="shartnomalarCount" class="smeta-count" style="display:none;margin:0 16px;"></div>
+    <div id="shartnomalarList" style="padding:0 16px;"></div>
+    <div style="text-align:center;color:#aaa;padding:40px;font-size:14px;" id="shartnomalarEmpty">
+      Shartnomalar hali yo'q
+    </div>
   </div>
 
   <!-- ========== SCREEN: YANGI SMETA (3-step wizard) ========== -->
@@ -500,6 +596,41 @@
     <!-- Step 1: Buyer info -->
     <div id="step-1" class="step-content active">
       <div class="card">
+        <div class="form-group">
+          <label>Buyurtmachi turi:</label>
+          <div style="display:flex;gap:8px;margin-top:4px;">
+            <button type="button" class="btn btn-primary" id="btnYuridik" onclick="toggleBuyurtmachiType('yuridik')" style="flex:1;margin-top:0;">Yuridik</button>
+            <button type="button" class="btn btn-outline" id="btnJismoniy" onclick="toggleBuyurtmachiType('jismoniy')" style="flex:1;margin-top:0;">Jismoniy</button>
+          </div>
+        </div>
+
+        <!-- Yuridik: STIR qidirish -->
+        <div id="stirBlock" class="form-group">
+          <label>STIR (INN):</label>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input type="text" id="buyurtmachiSTIR" placeholder="123456789" style="flex:1" inputmode="numeric">
+            <button type="button" class="btn btn-primary" onclick="searchCompany()" id="btnSearchSTIR" style="width:auto;margin-top:0;padding:10px 16px;font-size:13px;">Qidirish</button>
+          </div>
+          <div id="stirStatus" style="font-size:12px;margin-top:4px;color:#888;"></div>
+        </div>
+
+        <div class="form-group">
+          <label id="labelKorxona">Korxona nomi:</label>
+          <input type="text" id="korxona" placeholder="Korxona nomi">
+        </div>
+
+        <!-- Yuridik: rahbar -->
+        <div id="rahbarBlock" class="form-group">
+          <label>Rahbar FISh:</label>
+          <input type="text" id="buyurtmachiRahbar" placeholder="Rahbar ismi">
+        </div>
+
+        <!-- Telefon -->
+        <div id="telefonBlock" class="form-group">
+          <label>Telefon:</label>
+          <input type="text" id="buyurtmachiTelefon" placeholder="+998 90 123 45 67">
+        </div>
+
         <div class="form-group">
           <label>Viloyat:</label>
           <select id="viloyat">
@@ -532,10 +663,23 @@
           <label>Ko'cha / Manzil:</label>
           <input type="text" id="kocha" placeholder="Farovon ko'cha 19-uy">
         </div>
-        <div class="form-group">
-          <label>Korxona / Buyurtmachi:</label>
-          <input type="text" id="korxona" placeholder="Korxona nomi">
+
+        <!-- Yuridik: bank rekvizitlari -->
+        <div id="bankBlock">
+          <div class="form-group">
+            <label>Bank:</label>
+            <input type="text" id="buyurtmachiBank" placeholder="Bank nomi">
+          </div>
+          <div class="form-group">
+            <label>Hisob raqam:</label>
+            <input type="text" id="buyurtmachiHR" placeholder="20208000...">
+          </div>
+          <div class="form-group">
+            <label>MFO:</label>
+            <input type="text" id="buyurtmachiMFO" placeholder="00000">
+          </div>
         </div>
+
         <div class="form-group">
           <label>Faoliyat nomi:</label>
           <input type="text" id="faoliyat" placeholder="Tomchilab sug'orish ishlari">
@@ -578,16 +722,22 @@
       </div>
 
       <!-- Xizmat qo'shish -->
-      <details style="margin-bottom: 10px;">
-        <summary style="cursor:pointer;font-weight:600;font-size:14px;padding:12px 14px;background:var(--tg-theme-secondary-bg-color,white);border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,0.06);">
-          Xizmat qo'lda qo'shish
-        </summary>
-        <div class="card" style="margin-top:6px;">
-          <div class="form-group">
-            <label>Xizmat:</label>
-            <select id="serviceSelect">
-              <option value="">-- Tanlang --</option>
-            </select>
+      <div class="card" style="margin-top:10px;">
+        <div class="form-group">
+          <label>Xizmat turi:</label>
+          <select id="svcFamilySelect" onchange="onSvcFamilyChange()">
+            <option value="">-- Xizmat turini tanlang --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Xizmat:</label>
+          <select id="serviceSelect" onchange="onServiceChange()">
+            <option value="">-- Avval turni tanlang --</option>
+          </select>
+        </div>
+        <div id="serviceInfo" style="display:none">
+          <div style="font-size:13px;color:#666;margin-bottom:6px;">
+            O'lchov: <b id="svcUnit"></b> | Narx: <b id="svcPrice"></b> so'm
           </div>
           <div class="form-group">
             <label>Miqdor:</label>
@@ -595,7 +745,7 @@
           </div>
           <button class="btn btn-add" onclick="addService()">Xizmat qo'shish</button>
         </div>
-      </details>
+      </div>
 
       <!-- Qo'shilgan materiallar ro'yxati -->
       <h3 style="font-size:15px;margin:14px 0 8px;color:#1565C0;">Materiallar:</h3>
@@ -614,6 +764,9 @@
     <div id="step-3" class="step-content">
       <div id="printPreview" class="print-doc"></div>
 
+      <label style="display:flex;align-items:center;gap:6px;margin:10px 0;font-size:13px;cursor:pointer;">
+        <input type="checkbox" id="shartnomaBilan"> Shartnoma bilan saqlash
+      </label>
       <div class="step-nav">
         <button class="btn btn-outline" onclick="goStep(2)">&larr; Ortga</button>
         <button class="btn btn-primary" onclick="saveSmeta()">Saqlash va yuborish</button>
@@ -636,13 +789,12 @@
           </div>
           <div class="form-group">
             <label>Material turi:</label>
-            <input type="text" id="am_family" placeholder="Material turi" list="amFamilyDL">
-            <datalist id="amFamilyDL"></datalist>
+            <select id="am_family"><option value="">-- Tanlang --</option></select>
           </div>
           <div style="display:flex;gap:8px;">
             <div class="form-group" style="flex:1">
               <label>O'lchov:</label>
-              <select id="am_unit"><option value="dona">dona</option><option value="metr">metr</option></select>
+              <select id="am_unit"><option value="">--</option></select>
             </div>
             <div class="form-group" style="flex:1">
               <label>Narx:</label>
@@ -666,13 +818,12 @@
           </div>
           <div class="form-group">
             <label>Xizmat turi:</label>
-            <input type="text" id="as_family" placeholder="Xizmat turi" list="asFamilyDL">
-            <datalist id="asFamilyDL"></datalist>
+            <select id="as_family"><option value="">-- Tanlang --</option></select>
           </div>
           <div style="display:flex;gap:8px;">
             <div class="form-group" style="flex:1">
               <label>O'lchov:</label>
-              <select id="as_unit"><option value="dona">dona</option><option value="metr">metr</option></select>
+              <select id="as_unit"><option value="">--</option></select>
             </div>
             <div class="form-group" style="flex:1">
               <label>Narx:</label>
@@ -738,18 +889,6 @@
         <div id="auList"></div>
       </div>
     </details>
-
-    <!-- Tizim -->
-    <details class="adm-section">
-      <summary class="adm-summary">🔧 Tizim</summary>
-      <div class="adm-body">
-        <div class="card">
-          <button class="btn btn-primary" onclick="resetWebhook()" style="width:100%;margin-bottom:8px;">🔄 Webhook qayta o'rnatish</button>
-          <p style="font-size:12px;color:#888;margin:0;">Bot javob bermasa, shu tugmani bosing.</p>
-        </div>
-      </div>
-    </details>
-
     <!-- Sozlamalar -->
     <details class="adm-section" ontoggle="if(this.open) loadAdmSettings()">
       <summary class="adm-summary">⚙️ Sozlamalar</summary>
@@ -771,6 +910,23 @@
             <label>Izoh matni:</label>
             <textarea id="az_izoh" rows="3" style="width:100%;padding:11px 14px;border:1.5px solid #dde1e7;border-radius:10px;font-size:14px;resize:vertical;"></textarea>
           </div>
+          <hr style="margin:16px 0">
+          <h4 style="margin:0 0 12px">Pudratchi rekvizitlari</h4>
+          <div class="form-group"><label>Korxona nomi:</label><input type="text" id="az_pNomi"></div>
+          <div class="form-group"><label>Rahbar F.I.O.:</label><input type="text" id="az_pRahbar"></div>
+          <div class="form-group"><label>STIR:</label><input type="text" id="az_pSTIR"></div>
+          <div class="form-group"><label>Telefon:</label><input type="text" id="az_pTelefon"></div>
+          <div class="form-group"><label>Nomi qisqa:</label><input type="text" id="az_pNomiQisqa" placeholder='"HET" AJ Andijon hududiy filiali'></div>
+          <div class="form-group"><label>Manzil 1 (viloyat):</label><input type="text" id="az_pManzil"></div>
+          <div class="form-group"><label>Manzil 2 (shahar):</label><input type="text" id="az_pManzil2"></div>
+          <div class="form-group"><label>Manzil 3 (ko'cha):</label><input type="text" id="az_pManzil3"></div>
+          <div class="form-group"><label>Shahar (shartnoma uchun):</label><input type="text" id="az_pShahar" placeholder="Andijon shahar"></div>
+          <div class="form-group"><label>Bank:</label><input type="text" id="az_pBank"></div>
+          <div class="form-group"><label>Bank 2:</label><input type="text" id="az_pBank2"></div>
+          <div class="form-group"><label>Hisob raqam:</label><input type="text" id="az_pHR"></div>
+          <div class="form-group"><label>MFO:</label><input type="text" id="az_pMFO"></div>
+          <div class="form-group"><label>Ish muddati (kun):</label><input type="number" id="az_ishMuddati"></div>
+          <div class="form-group"><label>Shartnoma shablon ID:</label><input type="text" id="az_shablonId"></div>
           <button class="btn btn-primary" onclick="azSave()">Saqlash</button>
         </div>
       </div>
@@ -900,6 +1056,12 @@
         return;
       }
 
+      // Cached rolni darhol ko'rsatish (API kutmasdan)
+      var cachedRole = localStorage.getItem('userRole');
+      if (cachedRole === 'admin' || cachedRole === 'superadmin') {
+        document.getElementById('adminBtn').style.display = 'block';
+      }
+
       loadData();
     };
 
@@ -912,7 +1074,11 @@
           if (data.settings) appData.settings = data.settings;
           populateFamilies();
           populateServices();
-          if (data.user) appData.userRole = data.user.role || '';
+          toggleBuyurtmachiType('yuridik');
+          if (data.user) {
+            appData.userRole = data.user.role || '';
+            localStorage.setItem('userRole', appData.userRole);
+          }
           if (data.user && (data.user.role === 'admin' || data.user.role === 'superadmin')) {
             document.getElementById('adminBtn').style.display = 'block';
           }
@@ -932,6 +1098,7 @@
     function logout() {
       localStorage.removeItem('tgid');
       localStorage.removeItem('userName');
+      localStorage.removeItem('userRole');
       appData.telegramId = null;
       document.getElementById('logoutBtn').style.display = 'none';
       document.getElementById('adminBtn').style.display = 'none';
@@ -956,15 +1123,20 @@
         currentStep = 1;
         updateStepUI();
       }
+      if (name === 'shartnomalar') {
+        showLoading('Shartnomalar yuklanmoqda...');
+        loadShartnomalar(function() { hideLoading(); });
+      }
 
       // Scroll to top
       window.scrollTo(0, 0);
     }
 
     function goStep(n) {
-      // Step 1 → 2: korxona nomi majburiy
+      // Step 1 → 2: korxona nomi va smeta raqami majburiy
       if (n === 2 && currentStep === 1) {
         var korxonaEl = document.getElementById('korxona');
+        var smetaNoEl = document.getElementById('smetaNo');
         if (!korxonaEl.value.trim()) {
           korxonaEl.style.border = '2px solid #e53935';
           korxonaEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -973,6 +1145,17 @@
           korxonaEl.addEventListener('input', function handler() {
             korxonaEl.style.border = '';
             korxonaEl.removeEventListener('input', handler);
+          });
+          return;
+        }
+        if (!smetaNoEl.value.trim()) {
+          smetaNoEl.style.border = '2px solid #e53935';
+          smetaNoEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          smetaNoEl.focus();
+          showStatus('Smeta raqamini kiriting!', 'error');
+          smetaNoEl.addEventListener('input', function handler() {
+            smetaNoEl.style.border = '';
+            smetaNoEl.removeEventListener('input', handler);
           });
           return;
         }
@@ -1029,6 +1212,9 @@
     }
 
     var allSmetas = [];
+    var PAGE_SIZE = 20;
+    var currentPage = 0;
+    var currentFiltered = [];
 
     function renderSmetaList(list) {
       var el = document.getElementById('smetaList');
@@ -1047,10 +1233,77 @@
       list.sort(function(a, b) { return String(b.id).localeCompare(String(a.id)); });
       allSmetas = list;
       searchWrap.style.display = 'block';
+      var isAdmin = (appData.userRole === 'admin' || appData.userRole === 'superadmin');
+      document.getElementById('selectModeBtn').style.display = isAdmin ? 'inline-block' : 'none';
+      if (selectMode) { selectMode = true; toggleSelectMode(); }
+      currentPage = 0;
       renderFilteredSmetas(list);
     }
 
+    var selectMode = false;
+
+    function buildSmetaRowHtml(s, idx) {
+      var korxona = String(s.korxona || 'Noma\'lum');
+      var safeSheet = s.sheetName.replace(/'/g, "\\'");
+      var safeKorxona = korxona.replace(/'/g, "\\'");
+      var statusCls = (s.status === 'Tahrirlangan') ? 'status-tahrirlangan' : 'status-yangi';
+      var statusText = escHtml(s.status || 'Yangi');
+
+      var isAdmin = (appData.userRole === 'admin' || appData.userRole === 'superadmin');
+
+      // Sana formatlash
+      var dateStr = String(s.date || '');
+      if (dateStr.indexOf('T') > -1) {
+        var d = new Date(dateStr);
+        if (!isNaN(d)) dateStr = ('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+d.getFullYear();
+      }
+
+      var html = '<div class="smeta-card">';
+      if (isAdmin) {
+        html += '<div class="smeta-chk-wrap"><input type="checkbox" class="smeta-chk" data-sheet="' + safeSheet + '" data-name="' + safeKorxona + '" onchange="updateBatchBar()"></div>';
+      }
+      // 1-qator: korxona + status
+      html += '<div class="smeta-card-head">';
+      html += '<div class="smeta-card-title">' + escHtml(korxona) + '</div>';
+      html += '<span class="smeta-card-status ' + statusCls + '">' + statusText + '</span>';
+      html += '</div>';
+      // 2-qator: sana, joylashuv, egasi, faoliyat, raqam — bir meta blokda
+      var parts = [];
+      parts.push(dateStr);
+      if (s.location) parts.push(escHtml(s.location));
+      if (s.author) parts.push(escHtml(s.author));
+      if (s.faoliyat) parts.push(escHtml(s.faoliyat));
+      if (s.smetaNo) parts.push('&#8470;' + escHtml(s.smetaNo));
+      html += '<div class="smeta-card-meta">' + parts.join(' &middot; ') + '</div>';
+      // Oxirgi tahrir (faqat bo'lsa)
+      if (s.lastEditDate) {
+        html += '<div class="smeta-card-meta" style="font-size:10px;color:#aaa;">Tahr: ' + escHtml(s.lastEditDate);
+        if (s.lastEditBy) html += ' (' + escHtml(s.lastEditBy) + ')';
+        html += '</div>';
+      }
+      // Footer: summa + ID + buttons
+      html += '<div class="smeta-card-footer">';
+      html += '<span class="smeta-card-summa">' + fmtNum(s.summa || 0) + ' so\'m</span>';
+      html += '<span class="smeta-card-id">#' + s.id + '</span>';
+      html += '<div class="smeta-card-acts">';
+      html += '<button class="btn-pdf" onclick="exportSmeta(\'' + safeSheet + '\',\'pdf\')">PDF</button>';
+      if (isAdmin) {
+        html += '<button class="btn-xlsx" onclick="exportSmeta(\'' + safeSheet + '\',\'xlsx\')">XLS</button>';
+      }
+      if (!s.shartnomaSana) {
+        html += '<button class="btn-sht" onclick="exportShartnoma(\'' + String(s.id) + '\')" title="Shartnoma tuzish">SHT</button>';
+      } else {
+        html += '<button class="sht-done" onclick="exportShartnoma(\'' + String(s.id) + '\')" title="Shartnoma pechat: ' + escHtml(String(s.shartnomaSana)) + '">SHT</button>';
+      }
+      html += '</div>';
+      html += '</div>';
+      html += '</div>';
+      return html;
+    }
+
     function renderFilteredSmetas(list) {
+      currentFiltered = list;
+      currentPage = 0;
       var el = document.getElementById('smetaList');
       var countEl = document.getElementById('smetaCount');
       countEl.textContent = 'Jami: ' + list.length + ' ta smeta';
@@ -1061,43 +1314,64 @@
         return;
       }
 
+      var end = Math.min(PAGE_SIZE, list.length);
       var html = '';
-      for (var i = 0; i < list.length; i++) {
-        var s = list[i];
-        var korxona = String(s.korxona || 'Noma\'lum');
-        var safeSheet = s.sheetName.replace(/'/g, "\\'");
-        var safeKorxona = korxona.replace(/'/g, "\\'");
-        var loc = s.location ? ' · ' + escHtml(s.location) : '';
-
-        html += '<div class="smeta-row">';
-        html += '<span class="smeta-num">' + (i + 1) + '</span>';
-        html += '<div class="smeta-info">';
-        html += '<div class="smeta-name">' + escHtml(korxona) + '</div>';
-        html += '<div class="smeta-meta">#' + s.id + ' · ' + s.date + loc + ' · ' + fmtNum(s.summa || 0) + ' so\'m</div>';
-        html += '</div>';
-        html += '<div class="smeta-acts">';
-        html += '<button class="btn-pdf" onclick="exportSmeta(\'' + safeSheet + '\',\'pdf\')">PDF</button>';
-        if (appData.userRole === 'admin') {
-          html += '<button class="btn-xlsx" onclick="exportSmeta(\'' + safeSheet + '\',\'xlsx\')">XLS</button>';
-        }
-        html += '<button class="btn-del" onclick="deleteSmeta(\'' + safeSheet + '\',\'' + safeKorxona + '\')">✕</button>';
-        html += '</div>';
-        html += '</div>';
+      for (var i = 0; i < end; i++) {
+        html += buildSmetaRowHtml(list[i], i);
+      }
+      if (end < list.length) {
+        html += '<div style="text-align:center;padding:16px;">' +
+          '<button class="btn btn-primary" style="width:auto;padding:10px 32px;" onclick="loadMoreSmetas()">' +
+          'Yana ' + Math.min(PAGE_SIZE, list.length - end) + ' ta ko\'rsatish</button></div>';
       }
       el.innerHTML = html;
     }
 
-    function filterSmetas() {
-      var q = document.getElementById('smetaSearch').value.toLowerCase().trim();
-      if (!q) { renderFilteredSmetas(allSmetas); return; }
-      var filtered = allSmetas.filter(function(s) {
-        return (s.korxona || '').toLowerCase().indexOf(q) !== -1 ||
-               (s.location || '').toLowerCase().indexOf(q) !== -1 ||
-               String(s.id || '').toLowerCase().indexOf(q) !== -1 ||
-               (s.date || '').toLowerCase().indexOf(q) !== -1;
-      });
-      renderFilteredSmetas(filtered);
+    function loadMoreSmetas() {
+      currentPage++;
+      var start = currentPage * PAGE_SIZE;
+      var end = Math.min(start + PAGE_SIZE, currentFiltered.length);
+      if (start >= currentFiltered.length) return;
+
+      // "Yana ko'rsatish" tugmasini olib tashlash
+      var el = document.getElementById('smetaList');
+      var loadMoreBtn = el.lastElementChild;
+      if (loadMoreBtn) el.removeChild(loadMoreBtn);
+
+      var html = '';
+      for (var i = start; i < end; i++) {
+        html += buildSmetaRowHtml(currentFiltered[i], i);
+      }
+      if (end < currentFiltered.length) {
+        html += '<div style="text-align:center;padding:16px;">' +
+          '<button class="btn btn-primary" style="width:auto;padding:10px 32px;" onclick="loadMoreSmetas()">' +
+          'Yana ' + Math.min(PAGE_SIZE, currentFiltered.length - end) + ' ta ko\'rsatish</button></div>';
+      }
+      el.insertAdjacentHTML('beforeend', html);
     }
+
+    function filterSmetas() {
+      try {
+        var q = (document.getElementById('smetaSearch').value || '').toLowerCase().trim();
+        if (!q) { renderFilteredSmetas(allSmetas); return; }
+        var filtered = allSmetas.filter(function(s) {
+          var text = [s.korxona, s.location, s.id, s.date, s.author, s.faoliyat, s.smetaNo]
+            .map(function(v) { return String(v || ''); }).join(' ').toLowerCase();
+          return text.indexOf(q) !== -1;
+        });
+        renderFilteredSmetas(filtered);
+      } catch(e) {
+        console.error('filterSmetas error:', e);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      var searchEl = document.getElementById('smetaSearch');
+      if (searchEl) {
+        searchEl.addEventListener('input', filterSmetas);
+        searchEl.addEventListener('keyup', filterSmetas);
+      }
+    });
 
     function exportSmeta(sheetName, format) {
       showLoading(format.toUpperCase() + ' tayyorlanmoqda...');
@@ -1111,6 +1385,187 @@
           hideLoading();
           showStatus('Xatolik: ' + err.message, 'error');
         });
+    }
+
+    var pendingIsResend = false;
+
+    function exportShartnoma(smetaId) {
+      pendingSmetaIdForShartnoma = smetaId;
+      pendingIsResend = false;
+      _fetchPredmetAndConfirm(smetaId);
+    }
+
+    function resendShartnoma(smetaId) {
+      pendingSmetaIdForShartnoma = smetaId;
+      pendingIsResend = true;
+      _fetchPredmetAndConfirm(smetaId);
+    }
+
+    function _fetchPredmetAndConfirm(smetaId) {
+      showLoading('Tekshirilmoqda...');
+      gasGet('getSmetaPredmetText', { smetaId: smetaId })
+        .then(function(result) {
+          hideLoading();
+          if (result.error) {
+            showPredmetConfirm('');
+            return;
+          }
+          showPredmetConfirm(result.predmetText);
+        })
+        .catch(function(err) {
+          hideLoading();
+          showStatus('Xatolik: ' + err.message, 'error');
+        });
+    }
+
+    function showPredmetConfirm(predmetText) {
+      document.getElementById('predmetConfirmText').value = predmetText || '';
+      document.getElementById('predmetConfirmModal').style.display = 'flex';
+      setTimeout(function() { document.getElementById('predmetConfirmText').focus(); }, 100);
+    }
+
+    function closePredmetConfirm() {
+      document.getElementById('predmetConfirmModal').style.display = 'none';
+      pendingSmetaIdForShartnoma = null;
+    }
+
+    function confirmPredmetExport() {
+      var customText = document.getElementById('predmetConfirmText').value.trim();
+      if (!customText) {
+        document.getElementById('predmetConfirmText').style.borderColor = '#e53935';
+        document.getElementById('predmetConfirmText').focus();
+        return;
+      }
+      closePredmetConfirm();
+      var smetaId = pendingSmetaIdForShartnoma;
+      if (!smetaId) return;
+      showLoading('Shartnoma tayyorlanmoqda...');
+      var action = pendingIsResend ? 'resendShartnoma' : 'exportShartnoma';
+      gasGet(action, { smetaId: smetaId, tgid: appData.telegramId, predmetText: customText })
+        .then(function(result) {
+          hideLoading();
+          if (result.error) { showStatus(result.error, 'error'); return; }
+          showStatus('Shartnoma yuborildi!', 'success');
+          if (!pendingIsResend) loadSmetaList();
+        })
+        .catch(function(err) {
+          hideLoading();
+          showStatus('Xatolik: ' + err.message, 'error');
+        });
+    }
+
+    function changePredmetTuri() {
+      closePredmetConfirm();
+      showTuriModal();
+    }
+
+    function showTuriModal() {
+      var list = appData.shartnomaTurlari || [];
+      var container = document.getElementById('turiList');
+      var html = '';
+      for (var i = 0; i < list.length; i++) {
+        var t = list[i];
+        var tags = '';
+        if (t.material) tags += '<span class="turi-tag active">Material</span>';
+        if (t.xizmat) tags += '<span class="turi-tag active">Xizmat</span>';
+        if (t.laboratoriya) tags += '<span class="turi-tag active">Laboratoriya</span>';
+        if (t.loyiha) tags += '<span class="turi-tag active">Loyiha</span>';
+        if (t.tarmoq) tags += '<span class="turi-tag active">Tarmoq</span>';
+        html += '<button class="turi-btn" onclick="selectTuri(' + t.id + ')">';
+        html += '<div>' + (i + 1) + '. ' + escHtml(t.nomi) + '</div>';
+        html += '<div class="turi-tags">' + tags + '</div>';
+        html += '</button>';
+      }
+      container.innerHTML = html;
+      document.getElementById('turiModal').style.display = 'flex';
+    }
+
+    function closeTuriModal() {
+      document.getElementById('turiModal').style.display = 'none';
+    }
+
+    function selectTuri(turiId) {
+      closeTuriModal();
+      if (!pendingSmetaIdForShartnoma) return;
+      showLoading('Shartnoma tayyorlanmoqda...');
+      var action = pendingIsResend ? 'resendShartnoma' : 'exportShartnoma';
+      gasGet(action, { smetaId: pendingSmetaIdForShartnoma, tgid: appData.telegramId, turiId: turiId })
+        .then(function(result) {
+          hideLoading();
+          if (result.error) { showStatus(result.error, 'error'); return; }
+          showStatus('Shartnoma yuborildi!', 'success');
+          if (!pendingIsResend) loadSmetaList();
+          pendingSmetaIdForShartnoma = null;
+        })
+        .catch(function(err) {
+          hideLoading();
+          showStatus('Xatolik: ' + err.message, 'error');
+          pendingSmetaIdForShartnoma = null;
+        });
+    }
+
+    var allShartnomalar = [];
+
+    function loadShartnomalar(callback) {
+      gasGet('getShartnomalar', { tgid: appData.telegramId })
+        .then(function(result) {
+          if (Array.isArray(result)) {
+            allShartnomalar = result;
+          } else {
+            allShartnomalar = [];
+          }
+          renderShartnomalar();
+          if (callback) callback();
+        })
+        .catch(function() {
+          allShartnomalar = [];
+          renderShartnomalar();
+          if (callback) callback();
+        });
+    }
+
+    function renderShartnomalar() {
+      var list = allShartnomalar || [];
+      var container = document.getElementById('shartnomalarList');
+      var emptyEl = document.getElementById('shartnomalarEmpty');
+      var countEl = document.getElementById('shartnomalarCount');
+      if (list.length === 0) {
+        container.innerHTML = '';
+        emptyEl.style.display = '';
+        countEl.style.display = 'none';
+        return;
+      }
+      emptyEl.style.display = 'none';
+      countEl.style.display = '';
+      countEl.textContent = list.length + ' ta shartnoma';
+      var html = '';
+      for (var i = list.length - 1; i >= 0; i--) {
+        var s = list[i];
+        html += '<div class="smeta-card">';
+        html += '<div class="smeta-card-head">';
+        html += '<div class="smeta-card-title">' + escHtml(String(s.korxona || '')) + '</div>';
+        html += '<button class="sht-done" onclick="resendShartnoma(\'' + String(s.smetaId) + '\')" title="Shartnoma qayta yuborish">SHT</button>';
+        html += '</div>';
+        var parts = [];
+        parts.push('\u2116' + (s.smetaNo || s.smetaId));
+        if (s.sana) parts.push(escHtml(String(s.sana)));
+        if (s.buyurtmachiRahbar) parts.push(escHtml(String(s.buyurtmachiRahbar)));
+        html += '<div class="smeta-card-meta">' + parts.join(' \u00b7 ') + '</div>';
+        var details = [];
+        if (s.buyurtmachiSTIR) details.push('STIR: ' + escHtml(String(s.buyurtmachiSTIR)));
+        if (s.buyurtmachiTelefon) details.push('Tel: ' + escHtml(String(s.buyurtmachiTelefon)));
+        if (s.buyurtmachiBank) details.push('Bank: ' + escHtml(String(s.buyurtmachiBank)));
+        if (s.buyurtmachiHR) details.push('H/R: ' + escHtml(String(s.buyurtmachiHR)));
+        if (s.buyurtmachiMFO) details.push('MFO: ' + escHtml(String(s.buyurtmachiMFO)));
+        if (details.length > 0) {
+          html += '<div class="smeta-card-meta" style="font-size:11px;color:#888;">' + details.join(' \u00b7 ') + '</div>';
+        }
+        html += '<div class="smeta-card-footer">';
+        html += '<span class="smeta-card-summa">' + fmtNum(s.jamiSumma || 0) + ' so\'m</span>';
+        html += '<span class="smeta-card-id">#' + s.shartnomaId + '</span>';
+        html += '</div></div>';
+      }
+      container.innerHTML = html;
     }
 
     function deleteSmeta(sheetName, korxona) {
@@ -1131,6 +1586,76 @@
         });
     }
 
+    function toggleSelectMode() {
+      selectMode = !selectMode;
+      var list = document.getElementById('smetaList');
+      var btn = document.getElementById('selectModeBtn');
+      var bar = document.getElementById('batchBar');
+      if (selectMode) {
+        list.classList.add('select-mode');
+        btn.textContent = 'Bekor';
+        btn.style.background = '#ffebee';
+        btn.style.color = '#c62828';
+        btn.style.borderColor = '#ef9a9a';
+      } else {
+        list.classList.remove('select-mode');
+        btn.textContent = 'Tanlash';
+        btn.style.background = '#f5f5f5';
+        btn.style.color = '#666';
+        btn.style.borderColor = '#ddd';
+        bar.classList.remove('active');
+        // Uncheck all
+        var chks = document.querySelectorAll('.smeta-chk:checked');
+        for (var i = 0; i < chks.length; i++) chks[i].checked = false;
+      }
+    }
+
+    function updateBatchBar() {
+      var checked = document.querySelectorAll('.smeta-chk:checked');
+      var bar = document.getElementById('batchBar');
+      var txt = document.getElementById('batchBarText');
+      if (checked.length > 0) {
+        bar.classList.add('active');
+        txt.textContent = checked.length + ' ta tanlandi';
+      } else {
+        bar.classList.remove('active');
+      }
+    }
+
+    function batchDeleteSmetas() {
+      var checked = document.querySelectorAll('.smeta-chk:checked');
+      if (checked.length === 0) return;
+      if (!confirm(checked.length + ' ta smetani o\'chirishni xohlaysizmi?')) return;
+
+      showLoading(checked.length + ' ta o\'chirilmoqda...');
+      var items = [];
+      for (var i = 0; i < checked.length; i++) {
+        items.push(checked[i].getAttribute('data-sheet'));
+      }
+
+      var done = 0;
+      var errors = 0;
+      for (var j = 0; j < items.length; j++) {
+        (function(sheet) {
+          gasPost('deleteSmetaFromApp', { telegramId: appData.telegramId, sheetName: sheet })
+            .then(function(r) { if (r.error) errors++; })
+            .catch(function() { errors++; })
+            .then(function() {
+              done++;
+              if (done >= items.length) {
+                selectMode = true;
+                toggleSelectMode();
+                hideLoading();
+                if (errors > 0) showStatus((items.length - errors) + ' ta o\'chirildi, ' + errors + ' ta xatolik', 'error');
+                else showStatus(items.length + ' ta smeta o\'chirildi!', 'success');
+                showLoading('Smetalar yuklanmoqda...');
+                loadSmetaList(function() { hideLoading(); });
+              }
+            });
+        })(items[j]);
+      }
+    }
+
     // ==================== POPULATE ====================
     function populateFamilies() {
       var sel = document.getElementById('familySelect');
@@ -1145,28 +1670,55 @@
     }
 
     function populateServices() {
+      var sel = document.getElementById('svcFamilySelect');
+      sel.innerHTML = '<option value="">-- Xizmat turini tanlang --</option>';
+      var families = {};
+      for (var i = 0; i < appData.services.length; i++) {
+        var fam = appData.services[i].family || 'Boshqa';
+        families[fam] = true;
+      }
+      var keys = Object.keys(families).sort();
+      for (var k = 0; k < keys.length; k++) {
+        var opt = document.createElement('option');
+        opt.value = keys[k];
+        opt.textContent = keys[k];
+        sel.appendChild(opt);
+      }
+      document.getElementById('serviceSelect').innerHTML = '<option value="">-- Avval turni tanlang --</option>';
+      document.getElementById('serviceInfo').style.display = 'none';
+    }
+
+    function onSvcFamilyChange() {
+      var family = document.getElementById('svcFamilySelect').value;
       var sel = document.getElementById('serviceSelect');
       sel.innerHTML = '<option value="">-- Xizmat tanlang --</option>';
-      var groups = {};
+      document.getElementById('serviceInfo').style.display = 'none';
+
+      if (!family) return;
+
       for (var i = 0; i < appData.services.length; i++) {
         var s = appData.services[i];
-        var fam = s.family || 'Boshqa';
-        if (!groups[fam]) groups[fam] = [];
-        groups[fam].push(s);
-      }
-      var keys = Object.keys(groups).sort();
-      for (var k = 0; k < keys.length; k++) {
-        var grp = document.createElement('optgroup');
-        grp.label = keys[k];
-        for (var j = 0; j < groups[keys[k]].length; j++) {
-          var s = groups[keys[k]][j];
+        if ((s.family || 'Boshqa') === family) {
           var opt = document.createElement('option');
           opt.value = s.name;
-          opt.textContent = s.name + ' (' + s.unit + ', ' + fmtNum(s.price) + ')';
-          grp.appendChild(opt);
+          opt.textContent = s.name + ' (' + fmtNum(s.price) + ' so\'m)';
+          opt.dataset.unit = s.unit;
+          opt.dataset.price = s.price;
+          sel.appendChild(opt);
         }
-        sel.appendChild(grp);
       }
+    }
+
+    function onServiceChange() {
+      var sel = document.getElementById('serviceSelect');
+      var opt = sel.options[sel.selectedIndex];
+      if (!sel.value) {
+        document.getElementById('serviceInfo').style.display = 'none';
+        return;
+      }
+      document.getElementById('svcUnit').textContent = opt.dataset.unit;
+      document.getElementById('svcPrice').textContent = fmtNum(opt.dataset.price);
+      document.getElementById('serviceInfo').style.display = 'block';
     }
 
     function onFamilyChange() {
@@ -1321,8 +1873,10 @@
 
       renderAll();
       showStatus(svc.name + ' qo\'shildi!', 'success');
-      document.getElementById('serviceSelect').value = '';
+      document.getElementById('serviceSelect').innerHTML = '<option value="">-- Xizmat tanlang --</option>';
+      document.getElementById('serviceInfo').style.display = 'none';
       document.getElementById('svcQty').value = '1';
+      onSvcFamilyChange();
     }
 
     // ==================== FIND HELPERS ====================
@@ -1587,6 +2141,85 @@
       renderAll();
     }
 
+    // ==================== BUYURTMACHI TURI ====================
+    function toggleBuyurtmachiType(type) {
+      appData.buyurtmachiTuri = type;
+      var isYuridik = type === 'yuridik';
+      document.getElementById('btnYuridik').className = isYuridik ? 'btn btn-primary' : 'btn btn-outline';
+      document.getElementById('btnJismoniy').className = isYuridik ? 'btn btn-outline' : 'btn btn-primary';
+      document.getElementById('stirBlock').style.display = isYuridik ? '' : 'none';
+      document.getElementById('rahbarBlock').style.display = isYuridik ? '' : 'none';
+      document.getElementById('bankBlock').style.display = isYuridik ? '' : 'none';
+      document.getElementById('telefonBlock').style.display = isYuridik ? '' : 'none';
+      document.getElementById('labelKorxona').textContent = isYuridik ? 'Korxona nomi:' : 'FIO:';
+      document.getElementById('korxona').placeholder = isYuridik ? 'Korxona nomi' : 'Familiya Ism Sharif';
+    }
+
+    function searchCompany() {
+      var stir = document.getElementById('buyurtmachiSTIR').value.trim();
+      if (!stir || stir.length < 5) {
+        document.getElementById('stirStatus').textContent = 'STIR kamida 5 raqam bo\'lishi kerak';
+        document.getElementById('stirStatus').style.color = '#e53935';
+        return;
+      }
+      document.getElementById('stirStatus').textContent = 'Qidirilmoqda...';
+      document.getElementById('stirStatus').style.color = '#888';
+      document.getElementById('btnSearchSTIR').disabled = true;
+
+      // orginfo.uz orqali Worker proxy (hamma joydan ishlaydi)
+      fetchCompanyViaWorker(stir);
+    }
+
+    // Worker proxy orqali (orginfo.uz dan ma'lumot oladi)
+    function fetchCompanyViaWorker(stir) {
+      return fetch('/api/fetchCompany?stir=' + encodeURIComponent(stir))
+        .then(function(r) { return r.json(); })
+        .then(function(result) {
+          document.getElementById('btnSearchSTIR').disabled = false;
+          if (result && !result.error && result.nomi) {
+            showCompanyResult(result);
+          } else {
+            showCompanyError(result ? result.error : 'Korxona topilmadi');
+          }
+        })
+        .catch(function(err) {
+          document.getElementById('btnSearchSTIR').disabled = false;
+          showCompanyError('Xatolik yuz berdi');
+        });
+    }
+
+    // Natijani ko'rsatish
+    function showCompanyResult(result) {
+      document.getElementById('btnSearchSTIR').disabled = false;
+      document.getElementById('stirStatus').innerHTML =
+        'Topildi! <a href="https://registr.stat.uz" target="_blank" style="color:#1976d2;font-size:12px;">Yangi ma\'lumot uchun registr.stat.uz</a>';
+      document.getElementById('stirStatus').style.color = '#43a047';
+      document.getElementById('korxona').value = result.nomi || '';
+      document.getElementById('buyurtmachiRahbar').value = result.rahbar || '';
+      document.getElementById('buyurtmachiTelefon').value = result.telefon || '';
+      // Viloyat (select dan mosini tanlash)
+      if (result.viloyat) {
+        var vilEl = document.getElementById('viloyat');
+        var vilName = result.viloyat.split(' ')[0].toLowerCase();
+        for (var i = 0; i < vilEl.options.length; i++) {
+          if (vilEl.options[i].text.toLowerCase().indexOf(vilName) >= 0) {
+            vilEl.selectedIndex = i;
+            break;
+          }
+        }
+      }
+      if (result.tuman) document.getElementById('tuman').value = result.tuman;
+      if (result.kocha) document.getElementById('kocha').value = result.kocha;
+      if (result.faoliyat) document.getElementById('faoliyat').value = result.faoliyat;
+    }
+
+    // Xatolik ko'rsatish
+    function showCompanyError(msg) {
+      document.getElementById('stirStatus').innerHTML =
+        (msg || 'Xatolik') + '. <a href="https://registr.stat.uz" target="_blank" style="color:#1976d2;text-decoration:underline;">registr.stat.uz</a> dan tekshirib, qo\'lda kiriting';
+      document.getElementById('stirStatus').style.color = '#e53935';
+    }
+
     // ==================== SAVE ====================
     function saveSmeta() {
       var korxonaEl = document.getElementById('korxona');
@@ -1613,6 +2246,7 @@
         return;
       }
 
+      var bTuri = appData.buyurtmachiTuri || 'yuridik';
       var smetaData = {
         telegramId: appData.telegramId || 0,
         viloyat: document.getElementById('viloyat').value,
@@ -1623,7 +2257,15 @@
         faoliyat: document.getElementById('faoliyat').value,
         smetaNo: document.getElementById('smetaNo').value,
         materials: appData.materials,
-        services: appData.svcItems
+        services: appData.svcItems,
+        withShartnoma: document.getElementById('shartnomaBilan').checked,
+        buyurtmachiTuri: bTuri,
+        buyurtmachiSTIR: document.getElementById('buyurtmachiSTIR').value,
+        buyurtmachiRahbar: document.getElementById('buyurtmachiRahbar').value,
+        buyurtmachiTelefon: document.getElementById('buyurtmachiTelefon').value,
+        buyurtmachiBank: document.getElementById('buyurtmachiBank').value,
+        buyurtmachiHR: document.getElementById('buyurtmachiHR').value,
+        buyurtmachiMFO: document.getElementById('buyurtmachiMFO').value
       };
 
       showLoading('Saqlanmoqda...');
@@ -1651,6 +2293,14 @@
             document.getElementById('korxona').value = '';
             document.getElementById('faoliyat').value = '';
             document.getElementById('smetaNo').value = '';
+            document.getElementById('buyurtmachiSTIR').value = '';
+            document.getElementById('buyurtmachiRahbar').value = '';
+            document.getElementById('buyurtmachiTelefon').value = '';
+            document.getElementById('buyurtmachiBank').value = '';
+            document.getElementById('buyurtmachiHR').value = '';
+            document.getElementById('buyurtmachiMFO').value = '';
+            document.getElementById('stirStatus').textContent = '';
+            toggleBuyurtmachiType('yuridik');
             renderAll();
             goScreen('home');
           }
@@ -1679,6 +2329,7 @@
       if (tab === 'materials') { goScreen('new'); goStep(2); return; }
       if (tab === 'summary') { goScreen('new'); goStep(3); return; }
       if (tab === 'admin') { goScreen('admin'); return; }
+      if (tab === 'shartnomalar') { goScreen('shartnomalar'); return; }
     }
 
     // ==================== HELPERS ====================
@@ -1739,10 +2390,17 @@
         admData.materials = list || [];
         renderAdmMaterials();
       }, 'Materiallar yuklanmoqda...');
-      admCall('getMaterialFamilyList', {}, function(fams) {
-        var dl = document.getElementById('amFamilyDL');
-        dl.innerHTML = '';
-        for (var i = 0; i < fams.length; i++) dl.innerHTML += '<option value="' + escHtml(fams[i]) + '">';
+      admCall('getFamilies', { turi: 'material' }, function(fams) {
+        admData.matFamilies = fams || [];
+        var sel = document.getElementById('am_family');
+        sel.innerHTML = '<option value="">-- Tanlang --</option>';
+        for (var i = 0; i < fams.length; i++) sel.innerHTML += '<option value="' + fams[i].id + '">' + escHtml(fams[i].name) + '</option>';
+      });
+      admCall('getUnits', {}, function(units) {
+        admData.units = units || [];
+        var sel = document.getElementById('am_unit');
+        sel.innerHTML = '<option value="">--</option>';
+        for (var i = 0; i < units.length; i++) sel.innerHTML += '<option value="' + units[i].id + '">' + escHtml(units[i].name) + '</option>';
       });
     }
 
@@ -1763,16 +2421,16 @@
 
     function amSave() {
       var n = document.getElementById('am_name').value.trim();
-      var f = document.getElementById('am_family').value.trim();
-      var u = document.getElementById('am_unit').value.trim();
+      var fId = document.getElementById('am_family').value;
+      var uId = document.getElementById('am_unit').value;
       var p = parseFloat(document.getElementById('am_price').value) || 0;
       if (!n) { alert('Nomini kiriting!'); return; }
       if (admData.editRow && admData.editType === 'mat') {
-        admCall('updateMaterial', { row: admData.editRow, name: n, family: f, unit: u, price: p }, function() {
+        admCall('updateMaterial', { row: admData.editRow, name: n, familyId: Number(fId) || 0, unitId: Number(uId) || 0, price: p }, function() {
           showStatus('Yangilandi!', 'success'); amReset(); loadAdmMaterials(); loadData();
         }, 'Saqlanmoqda...');
       } else {
-        admCall('addMaterial', { name: n, family: f, unit: u, price: p }, function() {
+        admCall('addMaterial', { name: n, familyId: Number(fId) || 0, unitId: Number(uId) || 0, price: p }, function() {
           showStatus('Qo\'shildi!', 'success'); amReset(); loadAdmMaterials(); loadData();
         }, 'Qo\'shilmoqda...');
       }
@@ -1782,8 +2440,8 @@
       var m = admData.materials[i];
       admData.editRow = m.row; admData.editType = 'mat';
       document.getElementById('am_name').value = m.name;
-      document.getElementById('am_family').value = m.family || '';
-      document.getElementById('am_unit').value = m.unit || '';
+      document.getElementById('am_family').value = m.familyId || '';
+      document.getElementById('am_unit').value = m.unitId || '';
       document.getElementById('am_price').value = m.price || 0;
       document.getElementById('amBtn').textContent = 'Yangilash';
       document.getElementById('am_name').focus();
@@ -1800,7 +2458,7 @@
       admData.editRow = null; admData.editType = null;
       document.getElementById('am_name').value = '';
       document.getElementById('am_family').value = '';
-      document.getElementById('am_unit').value = 'dona';
+      document.getElementById('am_unit').value = '';
       document.getElementById('am_price').value = '';
       document.getElementById('amBtn').textContent = 'Qo\'shish';
     }
@@ -1811,11 +2469,16 @@
         admData.services = list || [];
         renderAdmServices();
       }, 'Xizmatlar yuklanmoqda...');
-      admCall('getServiceFamilyList', {}, function(fams) {
-        if (!fams) return;
-        var dl = document.getElementById('asFamilyDL');
-        dl.innerHTML = '';
-        for (var i = 0; i < fams.length; i++) dl.innerHTML += '<option value="' + escHtml(fams[i]) + '">';
+      admCall('getFamilies', { turi: 'xizmat' }, function(fams) {
+        admData.svcFamilies = fams || [];
+        var sel = document.getElementById('as_family');
+        sel.innerHTML = '<option value="">-- Tanlang --</option>';
+        for (var i = 0; i < fams.length; i++) sel.innerHTML += '<option value="' + fams[i].id + '">' + escHtml(fams[i].name) + '</option>';
+      });
+      admCall('getUnits', {}, function(units) {
+        var sel = document.getElementById('as_unit');
+        sel.innerHTML = '<option value="">--</option>';
+        for (var i = 0; i < units.length; i++) sel.innerHTML += '<option value="' + units[i].id + '">' + escHtml(units[i].name) + '</option>';
       });
     }
 
@@ -1836,16 +2499,16 @@
 
     function asSave() {
       var n = document.getElementById('as_name').value.trim();
-      var f = document.getElementById('as_family').value.trim();
-      var u = document.getElementById('as_unit').value.trim();
+      var fId = document.getElementById('as_family').value;
+      var uId = document.getElementById('as_unit').value;
       var p = parseFloat(document.getElementById('as_price').value) || 0;
       if (!n) { alert('Nomini kiriting!'); return; }
       if (admData.editRow && admData.editType === 'svc') {
-        admCall('updateService', { row: admData.editRow, name: n, family: f, unit: u, price: p }, function() {
+        admCall('updateService', { row: admData.editRow, name: n, familyId: Number(fId) || 0, unitId: Number(uId) || 0, price: p }, function() {
           showStatus('Yangilandi!', 'success'); asReset(); loadAdmServices(); loadData();
         }, 'Saqlanmoqda...');
       } else {
-        admCall('addService', { name: n, family: f, unit: u, price: p }, function() {
+        admCall('addService', { name: n, familyId: Number(fId) || 0, unitId: Number(uId) || 0, price: p }, function() {
           showStatus('Qo\'shildi!', 'success'); asReset(); loadAdmServices(); loadData();
         }, 'Qo\'shilmoqda...');
       }
@@ -1855,8 +2518,8 @@
       var s = admData.services[i];
       admData.editRow = s.row; admData.editType = 'svc';
       document.getElementById('as_name').value = s.name;
-      document.getElementById('as_family').value = s.family || '';
-      document.getElementById('as_unit').value = s.unit || '';
+      document.getElementById('as_family').value = s.familyId || '';
+      document.getElementById('as_unit').value = s.unitId || '';
       document.getElementById('as_price').value = s.price || 0;
       document.getElementById('asBtn').textContent = 'Yangilash';
       document.getElementById('as_name').focus();
@@ -1873,7 +2536,7 @@
       admData.editRow = null; admData.editType = null;
       document.getElementById('as_name').value = '';
       document.getElementById('as_family').value = '';
-      document.getElementById('as_unit').value = 'dona';
+      document.getElementById('as_unit').value = '';
       document.getElementById('as_price').value = '';
       document.getElementById('asBtn').textContent = 'Qo\'shish';
     }
@@ -2107,6 +2770,21 @@
         document.getElementById('az_qqs').value = s.qqsPercent || 12;
         document.getElementById('az_korxona').value = s.korxonaPercent || 18.71;
         document.getElementById('az_izoh').value = s.izohText || '';
+        document.getElementById('az_pNomi').value = s.pudratchiNomi || '';
+        document.getElementById('az_pRahbar').value = s.pudratchiRahbar || '';
+        document.getElementById('az_pSTIR').value = s.pudratchiSTR || '';
+        document.getElementById('az_pTelefon').value = s.pudratchiTelefon || '';
+        document.getElementById('az_pNomiQisqa').value = s.pudratchiNomiQisqa || '';
+        document.getElementById('az_pManzil').value = s.pudratchiManzil || '';
+        document.getElementById('az_pManzil2').value = s.pudratchiManzil2 || '';
+        document.getElementById('az_pManzil3').value = s.pudratchiManzil3 || '';
+        document.getElementById('az_pShahar').value = s.pudratchiShahar || '';
+        document.getElementById('az_pBank').value = s.pudratchiBank || '';
+        document.getElementById('az_pBank2').value = s.pudratchiBank2 || '';
+        document.getElementById('az_pHR').value = s.pudratchiHR || '';
+        document.getElementById('az_pMFO').value = s.pudratchiMFO || '';
+        document.getElementById('az_ishMuddati').value = s.ishMuddati || 30;
+        document.getElementById('az_shablonId').value = s.shartnomaTemplateId || '';
       }, 'Sozlamalar yuklanmoqda...');
     }
 
@@ -2115,21 +2793,52 @@
       var q = parseFloat(document.getElementById('az_qqs').value) || 0;
       var k = parseFloat(document.getElementById('az_korxona').value) || 0;
       var iz = document.getElementById('az_izoh').value;
-      admCall('saveSettings', { loyiha: l, qqs: q, korxona: k, izoh: iz }, function() {
+      var params = {
+        loyiha: l, qqs: q, korxona: k, izoh: iz,
+        pudratchiNomi: document.getElementById('az_pNomi').value,
+        pudratchiRahbar: document.getElementById('az_pRahbar').value,
+        pudratchiSTR: document.getElementById('az_pSTIR').value,
+        pudratchiTelefon: document.getElementById('az_pTelefon').value,
+        pudratchiNomiQisqa: document.getElementById('az_pNomiQisqa').value,
+        pudratchiManzil: document.getElementById('az_pManzil').value,
+        pudratchiManzil2: document.getElementById('az_pManzil2').value,
+        pudratchiManzil3: document.getElementById('az_pManzil3').value,
+        pudratchiShahar: document.getElementById('az_pShahar').value,
+        pudratchiBank: document.getElementById('az_pBank').value,
+        pudratchiBank2: document.getElementById('az_pBank2').value,
+        pudratchiHR: document.getElementById('az_pHR').value,
+        pudratchiMFO: document.getElementById('az_pMFO').value,
+        ishMuddati: parseInt(document.getElementById('az_ishMuddati').value) || 30,
+        shartnomaTemplateId: document.getElementById('az_shablonId').value
+      };
+      admCall('saveSettings', params, function() {
         showStatus('Sozlamalar saqlandi!', 'success');
         loadData();
       }, 'Saqlanmoqda...');
     }
 
-    function resetWebhook() {
-      admCall('resetWebhook', {}, function(r) {
-        if (r && r.success) {
-          showStatus('Webhook qayta o\'rnatildi!', 'success');
-        } else {
-          showStatus('Xatolik: ' + JSON.stringify(r), 'error');
-        }
-      }, 'Webhook o\'rnatilmoqda...');
-    }
   </script>
+
+<!-- Shartnoma turi tasdiqlash modal -->
+<div id="predmetConfirmModal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <div style="font-size:13px; color:#666; margin-bottom:8px; text-align:center;">Shartnoma turi (tahrirlab export qiling)</div>
+    <textarea id="predmetConfirmText" rows="3" placeholder="Shartnoma turi matnini kiriting..." style="width:100%; box-sizing:border-box; background:#e8eaf6; border:2px solid #7986cb; border-radius:8px; padding:12px; margin-bottom:16px; font-size:14px; font-weight:bold; color:#1a237e; line-height:1.5; resize:vertical; font-family:inherit; outline:none;"></textarea>
+    <div style="display:flex; gap:8px; margin-bottom:8px;">
+      <button class="btn" onclick="confirmPredmetExport()" style="flex:1; background:#388e3c; color:#fff; font-weight:bold;">&#10003; Tasdiqlash</button>
+      <button class="btn" onclick="changePredmetTuri()" style="flex:1; background:#f57c00; color:#fff; font-weight:bold;">&#9998; O'zgartirish</button>
+    </div>
+    <button class="btn btn-secondary" onclick="closePredmetConfirm()" style="width:100%;">Bekor qilish</button>
+  </div>
+</div>
+
+<div id="turiModal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <h3>Shartnoma turini tanlang</h3>
+    <div id="turiList" class="turi-list"></div>
+    <button class="btn btn-secondary" onclick="closeTuriModal()">Bekor qilish</button>
+  </div>
+</div>
+
 </body>
 </html>
