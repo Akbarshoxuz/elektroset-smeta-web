@@ -1387,46 +1387,21 @@
         });
     }
 
-    var pendingIsResend = false;
+    // ==================== SHARTNOMA TURI MODAL (callback pattern) ====================
+    var pendingPredmetCallback = null;
 
-    function exportShartnoma(smetaId) {
-      pendingSmetaIdForShartnoma = smetaId;
-      pendingIsResend = false;
-      _fetchPredmetAndConfirm(smetaId);
-    }
-
-    function resendShartnoma(smetaId) {
-      pendingSmetaIdForShartnoma = smetaId;
-      pendingIsResend = true;
-      _fetchPredmetAndConfirm(smetaId);
-    }
-
-    function _fetchPredmetAndConfirm(smetaId) {
-      showLoading('Tekshirilmoqda...');
-      gasGet('getSmetaPredmetText', { smetaId: smetaId })
-        .then(function(result) {
-          hideLoading();
-          if (result.error) {
-            showPredmetConfirm('');
-            return;
-          }
-          showPredmetConfirm(result.predmetText);
-        })
-        .catch(function(err) {
-          hideLoading();
-          showStatus('Xatolik: ' + err.message, 'error');
-        });
-    }
-
-    function showPredmetConfirm(predmetText) {
-      document.getElementById('predmetConfirmText').value = predmetText || '';
+    function showPredmetConfirm(predmetText, callback) {
+      pendingPredmetCallback = callback;
+      var ta = document.getElementById('predmetConfirmText');
+      ta.value = predmetText || '';
+      ta.style.borderColor = '#7986cb';
       document.getElementById('predmetConfirmModal').style.display = 'flex';
-      setTimeout(function() { document.getElementById('predmetConfirmText').focus(); }, 100);
+      setTimeout(function() { ta.focus(); }, 100);
     }
 
     function closePredmetConfirm() {
       document.getElementById('predmetConfirmModal').style.display = 'none';
-      pendingSmetaIdForShartnoma = null;
+      pendingPredmetCallback = null;
     }
 
     function confirmPredmetExport() {
@@ -1436,32 +1411,14 @@
         document.getElementById('predmetConfirmText').focus();
         return;
       }
-      var smetaId = pendingSmetaIdForShartnoma;
-      if (!smetaId) { alert('DEBUG: smetaId yo\'q!'); return; }
       document.getElementById('predmetConfirmModal').style.display = 'none';
-      pendingSmetaIdForShartnoma = null;
-      showLoading('Shartnoma tayyorlanmoqda...');
-      var action = pendingIsResend ? 'resendShartnoma' : 'exportShartnoma';
-      gasGet(action, { smetaId: smetaId, tgid: appData.telegramId, predmetText: customText })
-        .then(function(result) {
-          hideLoading();
-          if (result.error) { alert('GAS xato: ' + result.error); showStatus(result.error, 'error'); return; }
-          showStatus('Shartnoma yuborildi!', 'success');
-          if (!pendingIsResend) loadSmetaList();
-        })
-        .catch(function(err) {
-          hideLoading();
-          alert('Fetch xato: ' + err.message);
-          showStatus('Xatolik: ' + err.message, 'error');
-        });
+      var cb = pendingPredmetCallback;
+      pendingPredmetCallback = null;
+      if (cb) cb(customText);
     }
 
     function changePredmetTuri() {
-      closePredmetConfirm();
-      showTuriModal();
-    }
-
-    function showTuriModal() {
+      document.getElementById('predmetConfirmModal').style.display = 'none';
       var list = appData.shartnomaTurlari || [];
       var container = document.getElementById('turiList');
       var html = '';
@@ -1473,7 +1430,7 @@
         if (t.laboratoriya) tags += '<span class="turi-tag active">Laboratoriya</span>';
         if (t.loyiha) tags += '<span class="turi-tag active">Loyiha</span>';
         if (t.tarmoq) tags += '<span class="turi-tag active">Tarmoq</span>';
-        html += '<button class="turi-btn" onclick="selectTuri(' + t.id + ')">';
+        html += '<button class="turi-btn" data-name="' + escHtml(t.nomi) + '" onclick="selectTuriName(this.dataset.name)">';
         html += '<div>' + (i + 1) + '. ' + escHtml(t.nomi) + '</div>';
         html += '<div class="turi-tags">' + tags + '</div>';
         html += '</button>';
@@ -1484,25 +1441,66 @@
 
     function closeTuriModal() {
       document.getElementById('turiModal').style.display = 'none';
+      document.getElementById('predmetConfirmModal').style.display = 'flex';
     }
 
-    function selectTuri(turiId) {
-      closeTuriModal();
-      if (!pendingSmetaIdForShartnoma) return;
-      showLoading('Shartnoma tayyorlanmoqda...');
-      var action = pendingIsResend ? 'resendShartnoma' : 'exportShartnoma';
-      gasGet(action, { smetaId: pendingSmetaIdForShartnoma, tgid: appData.telegramId, turiId: turiId })
+    function selectTuriName(name) {
+      document.getElementById('turiModal').style.display = 'none';
+      document.getElementById('predmetConfirmText').value = name;
+      document.getElementById('predmetConfirmModal').style.display = 'flex';
+    }
+
+    // ==================== EXPORT / RESEND SHARTNOMA ====================
+    function exportShartnoma(smetaId) {
+      showLoading('Tekshirilmoqda...');
+      gasGet('getSmetaPredmetText', { smetaId: smetaId })
         .then(function(result) {
           hideLoading();
-          if (result.error) { showStatus(result.error, 'error'); return; }
-          showStatus('Shartnoma yuborildi!', 'success');
-          if (!pendingIsResend) loadSmetaList();
-          pendingSmetaIdForShartnoma = null;
+          var text = result.error ? '' : result.predmetText;
+          showPredmetConfirm(text, function(customText) {
+            showLoading('Shartnoma tayyorlanmoqda...');
+            gasGet('exportShartnoma', { smetaId: smetaId, tgid: appData.telegramId, predmetText: customText })
+              .then(function(res) {
+                hideLoading();
+                if (res.error) { showStatus(res.error, 'error'); return; }
+                showStatus('Shartnoma yuborildi!', 'success');
+                loadSmetaList();
+              })
+              .catch(function(err) {
+                hideLoading();
+                showStatus('Xatolik: ' + err.message, 'error');
+              });
+          });
         })
         .catch(function(err) {
           hideLoading();
           showStatus('Xatolik: ' + err.message, 'error');
-          pendingSmetaIdForShartnoma = null;
+        });
+    }
+
+    function resendShartnoma(smetaId) {
+      showLoading('Tekshirilmoqda...');
+      gasGet('getSmetaPredmetText', { smetaId: smetaId })
+        .then(function(result) {
+          hideLoading();
+          var text = result.error ? '' : result.predmetText;
+          showPredmetConfirm(text, function(customText) {
+            showLoading('Shartnoma tayyorlanmoqda...');
+            gasGet('resendShartnoma', { smetaId: smetaId, tgid: appData.telegramId, predmetText: customText })
+              .then(function(res) {
+                hideLoading();
+                if (res.error) { showStatus(res.error, 'error'); return; }
+                showStatus('Shartnoma yuborildi!', 'success');
+              })
+              .catch(function(err) {
+                hideLoading();
+                showStatus('Xatolik: ' + err.message, 'error');
+              });
+          });
+        })
+        .catch(function(err) {
+          hideLoading();
+          showStatus('Xatolik: ' + err.message, 'error');
         });
     }
 
@@ -2248,6 +2246,18 @@
         return;
       }
 
+      // Shartnoma bilan saqlash — avval shartnoma turini so'rash
+      if (document.getElementById('shartnomaBilan').checked) {
+        showPredmetConfirm('', function(customText) {
+          _doSaveSmeta(customText);
+        });
+        return;
+      }
+      _doSaveSmeta('');
+    }
+
+    function _doSaveSmeta(predmetText) {
+      var korxona = document.getElementById('korxona').value;
       var bTuri = appData.buyurtmachiTuri || 'yuridik';
       var smetaData = {
         telegramId: appData.telegramId || 0,
@@ -2260,7 +2270,8 @@
         smetaNo: document.getElementById('smetaNo').value,
         materials: appData.materials,
         services: appData.svcItems,
-        withShartnoma: document.getElementById('shartnomaBilan').checked,
+        withShartnoma: !!predmetText,
+        predmetText: predmetText,
         buyurtmachiTuri: bTuri,
         buyurtmachiSTIR: document.getElementById('buyurtmachiSTIR').value,
         buyurtmachiRahbar: document.getElementById('buyurtmachiRahbar').value,
@@ -2785,7 +2796,7 @@
         document.getElementById('az_pBank2').value = s.pudratchiBank2 || '';
         document.getElementById('az_pHR').value = s.pudratchiHR || '';
         document.getElementById('az_pMFO').value = s.pudratchiMFO || '';
-        document.getElementById('az_ishMuddati').value = s.ishMuddati || 30;
+        document.getElementById('az_ishMuddati').value = s.ishMuddati === '' ? '' : (s.ishMuddati || '');
         document.getElementById('az_shablonId').value = s.shartnomaTemplateId || '';
       }, 'Sozlamalar yuklanmoqda...');
     }
@@ -2810,7 +2821,7 @@
         pudratchiBank2: document.getElementById('az_pBank2').value,
         pudratchiHR: document.getElementById('az_pHR').value,
         pudratchiMFO: document.getElementById('az_pMFO').value,
-        ishMuddati: parseInt(document.getElementById('az_ishMuddati').value) || 30,
+        ishMuddati: document.getElementById('az_ishMuddati').value === '' ? '' : (parseInt(document.getElementById('az_ishMuddati').value) || 0),
         shartnomaTemplateId: document.getElementById('az_shablonId').value
       };
       admCall('saveSettings', params, function() {
