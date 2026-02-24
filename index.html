@@ -577,8 +577,18 @@
   <!-- ========== SCREEN: SHARTNOMALAR ========== -->
   <div id="screen-shartnomalar" class="screen">
     <button class="back-btn" onclick="goScreen('home')">&larr; Ortga</button>
-    <div id="shartnomalarCount" class="smeta-count" style="display:none;margin:0 16px;"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin:0 16px;">
+      <div id="shartnomalarCount" class="smeta-count" style="display:none;flex:1;margin:0;"></div>
+      <button id="shtSelectModeBtn" class="btn" style="display:none;padding:5px 12px;font-size:12px;background:#f5f5f5;color:#666;border:1px solid #ddd;border-radius:8px;cursor:pointer;" onclick="toggleShtSelectMode()">Tanlash</button>
+    </div>
     <div id="shartnomalarList" style="padding:0 16px;"></div>
+    <div id="shtBatchBar" class="batch-bar">
+      <span class="batch-bar-text" id="shtBatchBarText">0 ta tanlandi</span>
+      <div class="batch-bar-btns">
+        <button class="btn-batch-cancel" onclick="toggleShtSelectMode()">Bekor</button>
+        <button class="btn-batch-delete" onclick="batchDeleteShartnomalar()">O'chirish</button>
+      </div>
+    </div>
     <div style="text-align:center;color:#aaa;padding:40px;font-size:14px;" id="shartnomalarEmpty">
       Shartnomalar hali yo'q
     </div>
@@ -1524,24 +1534,33 @@
         });
     }
 
+    var shtSelectMode = false;
+
     function renderShartnomalar() {
       var list = allShartnomalar || [];
       var container = document.getElementById('shartnomalarList');
       var emptyEl = document.getElementById('shartnomalarEmpty');
       var countEl = document.getElementById('shartnomalarCount');
+      var selectBtn = document.getElementById('shtSelectModeBtn');
+      var isAdmin = appData.userRole === 'admin' || appData.userRole === 'superadmin';
       if (list.length === 0) {
         container.innerHTML = '';
         emptyEl.style.display = '';
         countEl.style.display = 'none';
+        if (selectBtn) selectBtn.style.display = 'none';
         return;
       }
       emptyEl.style.display = 'none';
       countEl.style.display = '';
       countEl.textContent = list.length + ' ta shartnoma';
+      if (selectBtn) selectBtn.style.display = isAdmin ? '' : 'none';
       var html = '';
       for (var i = list.length - 1; i >= 0; i--) {
         var s = list[i];
         html += '<div class="smeta-card">';
+        if (isAdmin) {
+          html += '<div class="smeta-chk-wrap"><input type="checkbox" class="sht-chk" data-id="' + s.shartnomaId + '" data-name="' + escHtml(String(s.korxona || '')) + '" onchange="updateShtBatchBar()"></div>';
+        }
         html += '<div class="smeta-card-head">';
         html += '<div class="smeta-card-title">' + escHtml(String(s.korxona || '')) + '</div>';
         html += '<button class="sht-done" onclick="resendShartnoma(\'' + String(s.smetaId) + '\')" title="Shartnoma qayta yuborish">SHT</button>';
@@ -1566,6 +1585,74 @@
         html += '</div></div>';
       }
       container.innerHTML = html;
+    }
+
+    function toggleShtSelectMode() {
+      shtSelectMode = !shtSelectMode;
+      var list = document.getElementById('shartnomalarList');
+      var btn = document.getElementById('shtSelectModeBtn');
+      var bar = document.getElementById('shtBatchBar');
+      if (shtSelectMode) {
+        list.classList.add('select-mode');
+        btn.textContent = 'Bekor';
+        btn.style.background = '#ffebee';
+        btn.style.color = '#c62828';
+        btn.style.borderColor = '#ef9a9a';
+      } else {
+        list.classList.remove('select-mode');
+        btn.textContent = 'Tanlash';
+        btn.style.background = '#f5f5f5';
+        btn.style.color = '#666';
+        btn.style.borderColor = '#ddd';
+        bar.classList.remove('active');
+        var chks = document.querySelectorAll('.sht-chk:checked');
+        for (var i = 0; i < chks.length; i++) chks[i].checked = false;
+      }
+    }
+
+    function updateShtBatchBar() {
+      var checked = document.querySelectorAll('.sht-chk:checked');
+      var bar = document.getElementById('shtBatchBar');
+      var txt = document.getElementById('shtBatchBarText');
+      if (checked.length > 0) {
+        bar.classList.add('active');
+        txt.textContent = checked.length + ' ta tanlandi';
+      } else {
+        bar.classList.remove('active');
+      }
+    }
+
+    function batchDeleteShartnomalar() {
+      var checked = document.querySelectorAll('.sht-chk:checked');
+      if (checked.length === 0) return;
+      if (!confirm(checked.length + ' ta shartnomani o\'chirishni xohlaysizmi?')) return;
+
+      showLoading(checked.length + ' ta o\'chirilmoqda...');
+      var ids = [];
+      for (var i = 0; i < checked.length; i++) {
+        ids.push(checked[i].getAttribute('data-id'));
+      }
+
+      var done = 0, errors = 0;
+      for (var j = 0; j < ids.length; j++) {
+        (function(id) {
+          gasGet('deleteShartnoma', { shartnomaId: id })
+            .then(function(r) { if (r.error) errors++; })
+            .catch(function() { errors++; })
+            .then(function() {
+              done++;
+              if (done >= ids.length) {
+                shtSelectMode = true;
+                toggleShtSelectMode();
+                hideLoading();
+                if (errors > 0) showStatus((ids.length - errors) + ' ta o\'chirildi, ' + errors + ' ta xatolik', 'error');
+                else showStatus(ids.length + ' ta shartnoma o\'chirildi!', 'success');
+                showLoading('Shartnomalar yuklanmoqda...');
+                loadShartnomalar(function() { hideLoading(); });
+              }
+            });
+        })(ids[j]);
+      }
     }
 
     function deleteSmeta(sheetName, korxona) {
