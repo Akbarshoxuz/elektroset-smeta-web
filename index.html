@@ -1437,19 +1437,21 @@
         return;
       }
       var smetaId = pendingSmetaIdForShartnoma;
-      if (!smetaId) return;
+      if (!smetaId) { alert('DEBUG: smetaId yo\'q!'); return; }
       document.getElementById('predmetConfirmModal').style.display = 'none';
+      pendingSmetaIdForShartnoma = null;
       showLoading('Shartnoma tayyorlanmoqda...');
       var action = pendingIsResend ? 'resendShartnoma' : 'exportShartnoma';
       gasGet(action, { smetaId: smetaId, tgid: appData.telegramId, predmetText: customText })
         .then(function(result) {
           hideLoading();
-          if (result.error) { showStatus(result.error, 'error'); return; }
+          if (result.error) { alert('GAS xato: ' + result.error); showStatus(result.error, 'error'); return; }
           showStatus('Shartnoma yuborildi!', 'success');
           if (!pendingIsResend) loadSmetaList();
         })
         .catch(function(err) {
           hideLoading();
+          alert('Fetch xato: ' + err.message);
           showStatus('Xatolik: ' + err.message, 'error');
         });
     }
