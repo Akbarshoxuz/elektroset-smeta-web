@@ -949,6 +949,7 @@
     // ==================== DATA ====================
     var appData = {
       families: {},
+      familyTartib: {},  // { familyName: tartibRaqam }
       services: [],
       settings: { loyihaPercent: 5, qqsPercent: 12, korxonaPercent: 18.71 },
       userRole: '',
@@ -1080,6 +1081,7 @@
         .then(function(data) {
           if (data.error) { showStatus(data.error, 'error'); if (onDone) onDone(); return; }
           if (data.families) appData.families = data.families;
+          if (data.familyTartib) appData.familyTartib = data.familyTartib;
           if (data.services) appData.services = data.services;
           if (data.settings) appData.settings = data.settings;
           populateFamilies();
@@ -1750,7 +1752,10 @@
     function populateFamilies() {
       var sel = document.getElementById('familySelect');
       sel.innerHTML = '<option value="">-- Material turini tanlang --</option>';
-      var keys = Object.keys(appData.families).sort();
+      var ft = appData.familyTartib || {};
+      var keys = Object.keys(appData.families).sort(function(a, b) {
+        return (ft[a] || 99) - (ft[b] || 99);
+      });
       for (var i = 0; i < keys.length; i++) {
         var opt = document.createElement('option');
         opt.value = keys[i];
@@ -1763,11 +1768,16 @@
       var sel = document.getElementById('svcFamilySelect');
       sel.innerHTML = '<option value="">-- Xizmat turini tanlang --</option>';
       var families = {};
+      var svcFamTartib = {};
       for (var i = 0; i < appData.services.length; i++) {
         var fam = appData.services[i].family || 'Boshqa';
         families[fam] = true;
+        if (appData.services[i].familyTartib) svcFamTartib[fam] = appData.services[i].familyTartib;
       }
-      var keys = Object.keys(families).sort();
+      appData.svcFamilyTartib = svcFamTartib;
+      var keys = Object.keys(families).sort(function(a, b) {
+        return (svcFamTartib[a] || 99) - (svcFamTartib[b] || 99);
+      });
       for (var k = 0; k < keys.length; k++) {
         var opt = document.createElement('option');
         opt.value = keys[k];
@@ -1870,7 +1880,24 @@
     }
 
     // ==================== ADD MATERIAL ====================
-    // Bir xil material/xizmat bo'lsa soni qo'shiladi, yo'q bo'lsa yangi qator
+    function getMaterialFamily(matName) {
+      var fams = appData.families || {};
+      for (var fam in fams) {
+        var items = fams[fam];
+        for (var j = 0; j < items.length; j++) {
+          if (items[j].name === matName) return fam;
+        }
+      }
+      return '';
+    }
+
+    function getMaterialTartib(matName) {
+      var fam = getMaterialFamily(matName);
+      if (!fam) return 99;
+      return (appData.familyTartib || {})[fam] || 99;
+    }
+
+    // Bir xil material/xizmat bo'lsa soni qo'shiladi, yo'q bo'lsa tartib bo'yicha joylashtiradi
     function addOrMergeMaterial(name, unit, qty, price, active) {
       for (var i = 0; i < appData.materials.length; i++) {
         if (appData.materials[i].name === name) {
@@ -1878,7 +1905,24 @@
           return;
         }
       }
-      appData.materials.push({ name: name, unit: unit, qty: qty, price: price, active: active });
+      var newItem = { name: name, unit: unit, qty: qty, price: price, active: active };
+      var newTartib = getMaterialTartib(name);
+      // Tartib bo'yicha to'g'ri joyga qo'yish
+      var inserted = false;
+      for (var i = 0; i < appData.materials.length; i++) {
+        var existTartib = getMaterialTartib(appData.materials[i].name);
+        if (newTartib < existTartib) {
+          appData.materials.splice(i, 0, newItem);
+          inserted = true;
+          break;
+        }
+      }
+      if (!inserted) appData.materials.push(newItem);
+    }
+
+    function getServiceTartib(family) {
+      var st = appData.svcFamilyTartib || {};
+      return st[family] || 99;
     }
 
     function addOrMergeService(name, family, unit, qty, price) {
@@ -1888,7 +1932,18 @@
           return;
         }
       }
-      appData.svcItems.push({ name: name, family: family, unit: unit, qty: qty, price: price, active: true });
+      var newItem = { name: name, family: family, unit: unit, qty: qty, price: price, active: true };
+      var newTartib = getServiceTartib(family);
+      var inserted = false;
+      for (var i = 0; i < appData.svcItems.length; i++) {
+        var existTartib = getServiceTartib(appData.svcItems[i].family);
+        if (newTartib < existTartib) {
+          appData.svcItems.splice(i, 0, newItem);
+          inserted = true;
+          break;
+        }
+      }
+      if (!inserted) appData.svcItems.push(newItem);
     }
 
     function addMaterial() {
