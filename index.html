@@ -1436,9 +1436,9 @@
         document.getElementById('predmetConfirmText').focus();
         return;
       }
-      closePredmetConfirm();
       var smetaId = pendingSmetaIdForShartnoma;
       if (!smetaId) return;
+      document.getElementById('predmetConfirmModal').style.display = 'none';
       showLoading('Shartnoma tayyorlanmoqda...');
       var action = pendingIsResend ? 'resendShartnoma' : 'exportShartnoma';
       gasGet(action, { smetaId: smetaId, tgid: appData.telegramId, predmetText: customText })
