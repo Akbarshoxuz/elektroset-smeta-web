@@ -1068,8 +1068,9 @@
         return;
       }
 
-      // Cached rolni darhol ko'rsatish (API kutmasdan)
+      // Cached rolni darhol o'rnatish (API kutmasdan)
       var cachedRole = localStorage.getItem('userRole');
+      if (cachedRole) appData.userRole = cachedRole;
       if (cachedRole === 'admin' || cachedRole === 'superadmin') {
         document.getElementById('adminBtn').style.display = 'block';
       }
