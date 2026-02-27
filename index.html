@@ -579,6 +579,7 @@
     <button class="back-btn" onclick="goScreen('home')">&larr; Ortga</button>
     <div style="display:flex;align-items:center;gap:8px;margin:0 16px;">
       <div id="shartnomalarCount" class="smeta-count" style="display:none;flex:1;margin:0;"></div>
+      <button id="shtExcelBtn" class="btn" style="display:none;padding:5px 12px;font-size:12px;background:#1B5E20;color:#fff;border:1px solid #1B5E20;border-radius:8px;cursor:pointer;" onclick="exportShartnomalarExcel()">Excel</button>
       <button id="shtSelectModeBtn" class="btn" style="display:none;padding:5px 12px;font-size:12px;background:#f5f5f5;color:#666;border:1px solid #ddd;border-radius:8px;cursor:pointer;" onclick="toggleShtSelectMode()">Tanlash</button>
     </div>
     <div id="shartnomalarList" style="padding:0 16px;"></div>
@@ -1544,18 +1545,21 @@
       var emptyEl = document.getElementById('shartnomalarEmpty');
       var countEl = document.getElementById('shartnomalarCount');
       var selectBtn = document.getElementById('shtSelectModeBtn');
+      var excelBtn = document.getElementById('shtExcelBtn');
       var isAdmin = appData.userRole === 'admin' || appData.userRole === 'superadmin';
       if (list.length === 0) {
         container.innerHTML = '';
         emptyEl.style.display = '';
         countEl.style.display = 'none';
         if (selectBtn) selectBtn.style.display = 'none';
+        if (excelBtn) excelBtn.style.display = 'none';
         return;
       }
       emptyEl.style.display = 'none';
       countEl.style.display = '';
       countEl.textContent = list.length + ' ta shartnoma';
       if (selectBtn) selectBtn.style.display = isAdmin ? '' : 'none';
+      if (excelBtn) excelBtn.style.display = '';
       var html = '';
       for (var i = list.length - 1; i >= 0; i--) {
         var s = list[i];
@@ -1658,6 +1662,20 @@
             });
         })(ids[j]);
       }
+    }
+
+    function exportShartnomalarExcel() {
+      showLoading('Excel tayyorlanmoqda...');
+      gasGet('exportShartnomalarExcel', { tgid: appData.telegramId })
+        .then(function(res) {
+          hideLoading();
+          if (res.error) { showStatus(res.error, 'error'); return; }
+          showStatus('Excel yuborildi!', 'success');
+        })
+        .catch(function(err) {
+          hideLoading();
+          showStatus('Xatolik: ' + err.message, 'error');
+        });
     }
 
     function deleteSmeta(sheetName, korxona) {
