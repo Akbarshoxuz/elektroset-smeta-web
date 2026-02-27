@@ -1558,8 +1558,8 @@
       emptyEl.style.display = 'none';
       countEl.style.display = '';
       countEl.textContent = list.length + ' ta shartnoma';
-      if (selectBtn) selectBtn.style.display = isAdmin ? '' : 'none';
-      if (excelBtn) excelBtn.style.display = '';
+      if (selectBtn) selectBtn.style.display = isAdmin ? 'inline-block' : 'none';
+      if (excelBtn) excelBtn.style.display = 'inline-block';
       var html = '';
       for (var i = list.length - 1; i >= 0; i--) {
         var s = list[i];
